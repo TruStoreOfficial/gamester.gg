@@ -12,9 +12,11 @@ A repo filled with close to a hundred offline games that can each run on a singl
 
 
 
-No CDNs nor iframes, every asset is inlined in the html file.
+No CDNs nor external frames, each game asset is inlined in the html file.
 
 
 Some files will be to large to copy and paste. Use chunks.py to split them. You can use https://github.com/CoolDude2349/schoolworkforall/blob/main/code-inputer2.html for loading the chunks. The Epic Viewer also has an option.
 
-Download zipped files here: https://www.mediafire.com/folder/ls4mnh7ywbd7m/offline_games_(split)
+The collection will continue to grow as we head into the future!!
+
+Download a split and zipped version of the files here: https://www.mediafire.com/folder/ls4mnh7ywbd7m/offline_games_(split)
