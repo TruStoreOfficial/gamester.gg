@@ -13,4 +13,4 @@ The collection's updated regulary to add more offline games. Many more soon..
 
 There's a single-file containing all the games but the games are located externally. It's recommended to store the game files in your downloads or Google Drive, then upload them to the single-file html (Supreme Math Lite)
 
-Download a split and zipped version of the files (used for the single-file) here: https://www.mediafire.com/folder/ls4mnh7ywbd7m/offline_games_(split)    
+You can download the zip files used in the single-file through the network tab.
