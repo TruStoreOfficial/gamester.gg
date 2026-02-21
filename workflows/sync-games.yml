@@ -1,0 +1,27 @@
+name: Sync Games from Gamester
+on:
+  workflow_dispatch: # Allows you to run it manually
+  schedule:
+    - cron: '0 0 * * 0' # Runs every Sunday at midnight
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout your repo
+        uses: actions/checkout@v3
+
+      - name: Clone Gamester Source
+        run: |
+          git clone --depth 1 https://github.com/TruStoreOfficial/gamester.gg.git source_repo
+          mkdir -p offline
+          cp -r source_repo/offline/* ./offline/
+          rm -rf source_repo
+
+      - name: Commit and Push
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add offline/
+          git commit -m "Sync 300+ games from source" || exit 0
+          git push
