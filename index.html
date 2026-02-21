@@ -3,105 +3,167 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>gamester.gg</title>
+    <title>gamester.gg | Classified Library</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { background-color: #0b0f1a; color: #e2e8f0; font-family: 'Inter', sans-serif; overflow-x: hidden; }
-        .glass { background: rgba(23, 32, 51, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
-        .game-card { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); background: #161d2f; border: 1px solid #1e293b; }
-        .game-card:hover { transform: translateY(-5px); border-color: #3b82f6; box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.4); }
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=Inter:wght@400;600;800&display=swap');
+        
+        body { background-color: #05070a; color: #f8fafc; font-family: 'Inter', sans-serif; }
+        .logo-font { font-family: 'Orbitron', sans-serif; }
+        
+        .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.05); }
+        .sidebar-item { transition: all 0.2s; border-left: 3px solid transparent; }
+        .sidebar-item:hover, .sidebar-item.active { background: rgba(0, 210, 255, 0.1); border-left-color: #00d2ff; color: #00d2ff; }
+        
+        .game-card { transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); background: #0f172a; border: 1px solid #1e293b; position: relative; overflow: hidden; }
+        .game-card:hover { transform: translateY(-5px); border-color: #00d2ff; box-shadow: 0 10px 30px rgba(0, 210, 255, 0.15); }
+        
+        .rating-badge { font-size: 0.6rem; padding: 2px 5px; border-radius: 4px; position: absolute; top: 8px; right: 8px; font-weight: 800; z-index: 10; }
+        .rating-3 { background: #22c55e; } .rating-12 { background: #f59e0b; } .rating-15 { background: #ef4444; }
+
         #overlay { display: none; position: fixed; inset: 0; background: #000; z-index: 9999; }
         iframe { width: 100%; height: 100%; border: none; }
-        .custom-scroll::-webkit-scrollbar { width: 6px; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 10px; }
+        
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
     </style>
 </head>
-<body class="min-h-screen custom-scroll">
+<body class="flex flex-col h-screen">
 
-    <nav class="sticky top-0 z-50 glass px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
+    <nav class="glass px-6 py-4 flex items-center justify-between border-b border-white/5 shrink-0">
         <div class="flex items-center gap-3">
-            <div class="bg-blue-600 p-2 rounded-lg shadow-lg shadow-blue-500/20">
-                <i class="fa fa-gamepad text-xl text-white"></i>
-            </div>
-            <h1 class="text-xl font-black tracking-tighter uppercase italic">Game<span class="text-blue-500">Hub</span></h1>
+            <div class="bg-gradient-to-tr from-cyan-500 to-blue-600 p-2 rounded-xl"><i class="fa fa-bolt text-white"></i></div>
+            <h1 class="logo-font text-xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white to-cyan-400">gamester.gg</h1>
         </div>
-        
-        <div class="relative w-full md:w-1/2">
+        <div class="relative w-1/3 hidden md:block">
             <i class="fa fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
-            <input type="text" id="search" placeholder="Search 230+ games instantly..." 
-                class="w-full bg-slate-900/50 border border-slate-700 rounded-full py-2.5 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+            <input type="text" id="search" placeholder="Quick search..." class="w-full bg-slate-900 border border-slate-800 rounded-full py-2 pl-12 pr-4 focus:ring-2 focus:ring-cyan-500 outline-none">
         </div>
-
-        <div class="text-xs font-mono text-slate-500 font-bold uppercase tracking-widest">
-            <span id="count">0</span> Games Available
+        <div class="text-right">
+            <span id="count" class="text-cyan-400 font-bold block leading-none">0</span>
+            <span class="text-[9px] text-slate-500 uppercase font-bold tracking-tighter">Games Loaded</span>
         </div>
     </nav>
 
-    <main class="p-6 max-w-[1600px] mx-auto">
-        <div id="grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
-            </div>
-    </main>
+    <div class="flex flex-1 overflow-hidden">
+        <aside class="w-64 glass border-r border-white/5 overflow-y-auto hidden lg:block p-4">
+            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4 px-2">Categories</p>
+            <nav id="categories" class="space-y-1">
+                <button onclick="filterCategory('All')" class="sidebar-item active w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 font-semibold text-sm">
+                    <i class="fa fa-th-large w-5"></i> All Games
+                </button>
+                <button onclick="filterCategory('Minecraft')" class="sidebar-item w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 font-semibold text-sm">
+                    <i class="fa fa-cubes w-5"></i> Minecraft
+                </button>
+                <button onclick="filterCategory('Action')" class="sidebar-item w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 font-semibold text-sm">
+                    <i class="fa fa-crosshairs w-5"></i> Action
+                </button>
+                <button onclick="filterCategory('Sports')" class="sidebar-item w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 font-semibold text-sm">
+                    <i class="fa fa-basketball w-5"></i> Sports
+                </button>
+                <button onclick="filterCategory('Racing')" class="sidebar-item w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 font-semibold text-sm">
+                    <i class="fa fa-car w-5"></i> Racing
+                </button>
+                <button onclick="filterCategory('Papa\'s')" class="sidebar-item w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 font-semibold text-sm">
+                    <i class="fa fa-utensils w-5"></i> Papa's
+                </button>
+                <button onclick="filterCategory('Adventure')" class="sidebar-item w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 font-semibold text-sm">
+                    <i class="fa fa-compass w-5"></i> Adventure
+                </button>
+                <button onclick="filterCategory('Horror')" class="sidebar-item w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 font-semibold text-sm">
+                    <i class="fa fa-ghost w-5"></i> Horror
+                </button>
+                <button onclick="filterCategory('Puzzle')" class="sidebar-item w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 font-semibold text-sm">
+                    <i class="fa fa-brain w-5"></i> Logic/Puzzle
+                </button>
+            </nav>
+        </aside>
+
+        <main class="flex-1 overflow-y-auto p-6 scroll-smooth">
+            <div id="grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8 gap-4">
+                </div>
+        </main>
+    </div>
 
     <div id="overlay">
-        <div class="absolute top-4 right-4 z-[10000] flex gap-2">
-            <button onclick="toggleFS()" class="bg-slate-800/90 hover:bg-slate-700 text-white w-10 h-10 rounded-full transition-all border border-slate-600">
-                <i class="fa fa-expand"></i>
-            </button>
-            <button onclick="closeGame()" class="bg-red-600 hover:bg-red-500 text-white w-10 h-10 rounded-full transition-all border border-red-400">
-                <i class="fa fa-times"></i>
+        <div class="absolute top-4 right-4 z-[10000]">
+            <button onclick="closeGame()" class="bg-red-600 p-3 rounded-full text-white shadow-xl hover:bg-red-500 transition-all">
+                <i class="fa fa-times text-xl"></i>
             </button>
         </div>
         <iframe id="game-frame" src="" allowfullscreen></iframe>
     </div>
 
     <script>
-        // FULL LIST EXTRACTED FROM YOUR DATA
         const gameFiles = [
             "1.12.html", "1.5.html", "1.8.html", "10minutestilldawn.html", "12minibattles.html", "1on1soccer.html", "1on1tennis.html", "1v1.lol.html", "2048.html", "2048cupcakes.html", "3Dflightsimulator.html", "8ballclassic.html", "Alpha_1.2.6.html", "Beta_1.3.html", "Indev.html", "agariolite.html", "ageofwar.html", "ageofwar2.html", "agesofconflict.html", "amongus.html", "angrybirds.html", "angrybirdsshowdown.html", "angrybirdsspace.html", "awesometanks.html", "awesometanks2.html", "backrooms.html", "baconmaydie.html", "badicecream.html", "badicecream2.html", "badicecream3.html", "badparenting.html", "badpiggies.html", "baldisbasics.html", "baseballbros.html", "basketballlegends.html", "basketballstars.html", "basketbros.html", "basketrandom.html", "bitlife.html", "bitplanes.htm", "blockysnakes.html", "bloonsTD.html", "bloonsTD2.html", "bloonsTD3.html", "bloonsTD4.html", "bloonsTD5.html", "bloxorz.html", "blumgiracers.html", "blumgirocket.html", "bobtherobber.html", "bobtherobber2.html", "bobtherobber5.html", "bouncymotors.html", "bowmasters.html", "boxingrandom.htm", "breakingthebank.html", "bubbleshooter.html", "candycrush.html", "capybaraclicker.html", "cardrawing.html", "carkingarena.html", "chess.html", "choppyorc.html", "circloO.html", "circloO2.html", "clashofvikings.html", "cleanupio.html", "clusterrush.html", "cookieclicker.htm", "crazycars.html", "crazycattle3D.html", "crazycrashlanding.html", "crazymotorcycle.html", "crossyroad.htm", "cuttherope.html", "dadish.html", "dadish2.html", "dadish3.html", "deathchase.html", "deathrun3D.html", "demolitionderbycrashracing.html", "doodlejump.html", "drawclimber.html", "dreadheadparkour.htm", "driftboss.htm", "drivemad.htm", "ducklife.html", "ducklife2.html", "ducklife3.html", "ducklife4.html", "ducklife5.html", "ducklingsio.html", "eagleride.html", "earntodie.html", "earntodie2.html", "eggycar.html", "elasticface.htm", "escaperoad.html", "escaperoad2.html", "escapingtheprison.html", "evilglitch.html", "fancypantsadventure.html", "fancypantsadventure2.html", "fireboyandwatergirl.html", "fireboyandwatergirl2.html", "fireboyandwatergirl3.html", "fireboyandwatergirl4.html", "flappybird.html", "floodrunner2.html", "floodrunner3.html", "floodrunner4.html", "fnaf.html", "fnaf2.html", "fnaf3.html", "fnaf4.html", "footballbros.html", "footballlegends.html", "freerider3.html", "fruitninja.html", "funnybattle.html", "funnybattle2.html", "funnymadracing.html", "funnyshooter2.html", "geometrydash.html", "geometrydashlite.html", "geometryvibes.html", "getawayshootout.htm", "getontop.html", "gladihoppers.html", "googlebaseball.html", "googledino.html", "granny.html", "granny2.html", "guesstheiranswer.html", "hanger2.html", "happywheels.html", "helixjump.html", "highwaytraffic.html", "hillclimbracinglite.html", "holeio.html", "houseofhazards.html", "hoverracerdrive.html", "idlebreakout.html", "ironsnout.html", "jetpackjoyride.html", "johnnytrigger.html", "jumpingshell.html", "karatebros.html", "kartbros.html", "learntofly.html", "learntofly2.html", "learntofly3.html", "learntoflyidle.html", "leveldevil.html", "madalinstuntcars2.html", "melonplayground.html", "mergeroundracers.html", "minesweeper.html", "monkeymart.htm", "monstertracks.html", "motox3m.htm", "motox3m2.html", "motox3m3.html", "motox3mpoolparty.html", "motox3mspookyland.html", "motox3mwinter.html", "noobminer.html", "oppositeday.html", "ovo.html", "ovo2.html", "ovo3dimensions.html", "pacman.html", "papasbakeria.html", "papasburgeria.html", "papascheeseria.html", "papascupcakeria.html", "papasdonuteria.html", "papasfreezeria.html", "papashotdoggeria.html", "papaspancakeria.html", "papaspastaria.html", "papaspizzeria.html", "papasscooperia.html", "papassushiria.html", "papstacomia.html", "papaswingeria.html", "paperio2.htm", "parkingfury.html", "parkingfury2.html", "parkingfury3.html", "picosschool.html", "pingpongchaos.html", "pixelspeedrun.html", "plantsvszombies.html", "plonky.html", "polytrack.html", "poorbunny.html", "pou.html", "ragdollarchers.htm", "ragdollhit.html", "ragdollsoccer.html", "redball4vol1.html", "redball4vol2.html", "redball4vol3.html", "retrobowl.html", "retrobowlcollege.html", "retrohighway.html", "retropingpong.html", "riddleschool.html", "riddleschool2.html", "riddleschool3.html", "riddleschool4.html", "riddleschool5.html", "riddletransfer.html", "riddletransfer2.html", "rocketsoccerderby.html", "rooftopsnipers.htm", "rooftopsnipers2.html", "run.html", "run2.html", "run3.html", "sandgame.html", "shortlife.html", "slope.html", "slope2player.html", "slope3.html", "slowroads.html", "sm63.html", "sm64.html", "snowballio.html", "snowrider.htm", "snowroad.htm", "soccerbros.html", "soccerrandom.htm", "spacebarclicker.html", "spaceiskey.html", "spaceiskey2.html", "spacewaves.html", "speedstars.html", "sprunki.html", "stack.html", "stacktris.html", "stateio.html", "stickarchersbattle.html", "stickfighter.html", "stickmanhook.html", "stickmerge.html", "subwaysurfersbeijing.html", "subwaysurfershavana.html", "subwaysurferssanfrancisco.html", "superbikethechampion.html", "superhot.html", "superliquidsoccer.html", "superstarcar.html", "tabletennisworldtour.html", "tag.html", "taproad.html", "templeofboom.html", "templerun2.htm", "territorialio.html", "theimpossiblequiz.html", "theimpossiblequiz2.html", "thereisnog.html", "theyarecoming.html", "thisistheonlylevel.html", "thisistheonlyleveltoo.html", "timeshooter2.html", "timeshooter3.htm", "tinyfishing.html", "tombofthemask.htm", "trapthecat.html", "triviacrack.html", "tubejumpers.html", "tunnelrush.html", "unicyclehero.html", "vex4.html", "vex5.html", "vex6.htm", "vex7.htm", "vex8.htm", "vexx3m.html", "vexx3m2.html", "volleyrandom.html", "wartheknights.html", "webecomewhatwebehold.html", "wheeliebike.html", "wheely.html", "wheely2.html", "wheely3.html", "wheely4.html", "wheely5.html", "wheely6.html", "wheely7.html", "wheely8.html", "wordleunlimited.html", "worldshardestgame.html", "worldshardestgame2.html", "worldshardestgame3.html", "wrestlebros.html", "zombierush.html"
         ];
 
-        const grid = document.getElementById('grid');
-        const searchInput = document.getElementById('search');
-        const countDisplay = document.getElementById('count');
+        let currentCategory = 'All';
 
-        function formatTitle(filename) {
-            return filename.replace(/\.(html|htm)$/, '')
-                           .replace(/([A-Z])/g, ' $1')
-                           .replace(/[_-]/g, ' ')
-                           .trim()
-                           .toUpperCase();
+        function getGameInfo(file) {
+            const n = file.toLowerCase();
+            let info = { type: 'Action', icon: 'fa-gamepad', rating: '3+', rClass: 'rating-3' };
+
+            // Categorization
+            if (n.match(/1\.(12|5|8)|alpha|beta|indev|minecraft/)) { info.type = 'Minecraft'; info.icon = 'fa-cubes'; }
+            else if (n.includes('papas')) { info.type = "Papa's"; info.icon = 'fa-utensils'; }
+            else if (n.match(/soccer|football|basket|ball|tennis|boxing|wrestle/)) { info.type = 'Sports'; info.icon = 'fa-basketball'; }
+            else if (n.match(/moto|bike|car|drive|drift|slope|road/)) { info.type = 'Racing'; info.icon = 'fa-car-side'; }
+            else if (n.match(/granny|fnaf|backrooms|ghost|horror/)) { info.type = 'Horror'; info.icon = 'fa-ghost'; info.rating = '15+'; info.rClass = 'rating-15'; }
+            else if (n.match(/riddle|escape|fireboy|watergirl|bobtherobber|dadish|fancy/)) { info.type = 'Adventure'; info.icon = 'fa-compass'; }
+            else if (n.match(/2048|chess|minesweeper|quiz|wordle|logic|puzzle/)) { info.type = 'Puzzle'; info.icon = 'fa-brain'; }
+            
+            // Ratings Override
+            if (n.match(/shooter|1v1|gun|sniper|battle|hot/)) { info.rating = '12+'; info.rClass = 'rating-12'; }
+
+            return info;
         }
 
-        function render(filter = "") {
+        function render() {
+            const search = document.getElementById('search').value.toLowerCase();
+            const grid = document.getElementById('grid');
             grid.innerHTML = "";
-            const filtered = gameFiles.filter(f => f.toLowerCase().includes(filter.toLowerCase()));
-            countDisplay.innerText = filtered.length;
+
+            const filtered = gameFiles.filter(f => {
+                const info = getGameInfo(f);
+                const matchesSearch = f.toLowerCase().includes(search);
+                const matchesCat = (currentCategory === 'All' || info.type === currentCategory);
+                return matchesSearch && matchesCat;
+            });
+
+            document.getElementById('count').innerText = filtered.length;
 
             filtered.forEach(file => {
-                const card = document.createElement('div');
-                card.className = "game-card p-4 rounded-2xl cursor-pointer flex flex-col items-center justify-center text-center group";
-                card.onclick = () => launch(file);
+                const info = getGameInfo(file);
+                const title = file.replace(/\.(html|htm)$/, '').replace(/[_-]/g, ' ').toUpperCase();
                 
-                const colors = ['text-blue-400', 'text-cyan-400', 'text-indigo-400', 'text-sky-400'];
-                const colorClass = colors[file.length % colors.length];
-
+                const card = document.createElement('div');
+                card.className = "game-card p-4 rounded-xl flex flex-col items-center text-center cursor-pointer group";
+                card.onclick = () => launch(file);
                 card.innerHTML = `
-                    <div class="w-12 h-12 mb-3 bg-slate-900 rounded-xl flex items-center justify-center group-hover:bg-slate-800 transition-colors">
-                        <i class="fa fa-play text-xl ${colorClass}"></i>
+                    <div class="rating-badge ${info.rClass}">${info.rating}</div>
+                    <div class="w-12 h-12 bg-slate-950 rounded-lg flex items-center justify-center mb-3 group-hover:bg-cyan-500/10 transition-colors">
+                        <i class="fa ${info.icon} text-xl text-slate-500 group-hover:text-cyan-400"></i>
                     </div>
-                    <h3 class="text-[10px] font-black tracking-widest leading-tight w-full truncate px-1">${formatTitle(file)}</h3>
+                    <h3 class="text-[9px] font-black tracking-widest text-slate-400 group-hover:text-white truncate w-full">${title}</h3>
                 `;
                 grid.appendChild(card);
             });
         }
 
+        function filterCategory(cat) {
+            currentCategory = cat;
+            document.querySelectorAll('.sidebar-item').forEach(btn => {
+                btn.classList.toggle('active', btn.innerText.includes(cat) || (cat === 'All' && btn.innerText.includes('All')));
+            });
+            render();
+        }
+
         function launch(file) {
-            const overlay = document.getElementById('overlay');
-            const frame = document.getElementById('game-frame');
-            // Points to the offline folder where your games are stored
-            frame.src = `./offline/${file}`;
-            overlay.style.display = "block";
+            document.getElementById('game-frame').src = `./offline/${file}`;
+            document.getElementById('overlay').style.display = "block";
             document.body.style.overflow = "hidden";
         }
 
@@ -111,15 +173,7 @@
             document.body.style.overflow = "auto";
         }
 
-        function toggleFS() {
-            const el = document.getElementById('game-frame');
-            if (el.requestFullscreen) el.requestFullscreen();
-            else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-        }
-
-        searchInput.addEventListener('input', (e) => render(e.target.value));
-        
-        // Boot up
+        document.getElementById('search').addEventListener('input', render);
         render();
     </script>
 </body>
