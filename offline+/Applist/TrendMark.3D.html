@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrendMark 3D - Elite Aim Trainer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0a;
+            color: white;
+            user-select: none;
+        }
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .interactive {
+            pointer-events: auto;
+        }
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            pointer-events: none;
+        }
+        #crosshair::before, #crosshair::after {
+            content: '';
+            position: absolute;
+            background: #00ff88;
+        }
+        #crosshair::before { top: 50%; left: 0; width: 100%; height: 2px; transform: translateY(-50%); }
+        #crosshair::after { left: 50%; top: 0; height: 100%; width: 2px; transform: translateX(-50%); }
+        
+        .glass {
+            background: rgba(20, 20, 20, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        select option {
+            background-color: #1a1a1a;
+            color: white;
+        }
+
+        #hit-marker {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 30px;
+            height: 30px;
+            border: 2px solid #ff4444;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.1s;
+        }
+
+        canvas { display: block; }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #00ccff;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <!-- HUD -->
+        <div id="hud" class="hidden p-6 flex justify-between items-start w-full">
+            <div class="glass p-4 rounded-xl flex space-x-6">
+                <div>
+                    <p class="text-[10px] uppercase tracking-widest text-gray-400">Score</p>
+                    <p id="score-val" class="text-xl font-800 text-white">0</p>
+                </div>
+                <div class="border-l border-white/10 pl-6">
+                    <p class="text-[10px] uppercase tracking-widest text-gray-400">Time</p>
+                    <p id="timer-val" class="text-xl font-800 text-white">60s</p>
+                </div>
+                <div class="border-l border-white/10 pl-6">
+                    <p class="text-[10px] uppercase tracking-widest text-gray-400">Accuracy</p>
+                    <p id="acc-val" class="text-xl font-800 text-white">100%</p>
+                </div>
+                <div class="border-l border-white/10 pl-6">
+                    <p class="text-[10px] uppercase tracking-widest text-gray-400">Reaction</p>
+                    <p id="ms-val" class="text-xl font-800 text-yellow-400">0ms</p>
+                </div>
+                <div class="border-l border-white/10 pl-6">
+                    <p class="text-[10px] uppercase tracking-widest text-gray-400">FPS</p>
+                    <p id="fps-val" class="text-xl font-800 text-green-400">0</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="crosshair"></div>
+        <div id="hit-marker"></div>
+
+        <!-- Main Menu -->
+        <div id="menu" class="interactive absolute inset-0 flex items-center justify-center bg-black/60">
+            <div class="flex flex-col md:flex-row gap-6 max-w-4xl w-full px-6">
+                
+                <!-- Settings Panel -->
+                <div class="glass p-8 rounded-3xl flex-1 text-center space-y-6">
+                    <h1 class="text-5xl font-800 tracking-tighter bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent italic">TRENDMARK</h1>
+                    <p class="text-gray-400">Next-Gen Reflex Training System</p>
+                    
+                    <div class="grid grid-cols-1 gap-4 text-left">
+                        <div class="glass p-4 rounded-xl">
+                            <label class="text-[10px] uppercase text-gray-500 mb-2 block">Sensitivity</label>
+                            <input id="sens-input" type="range" min="0.1" max="5.0" step="0.1" value="1.0" class="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="glass p-3 rounded-xl">
+                                <label class="text-[10px] uppercase text-gray-500 block mb-1">Target Size</label>
+                                <select id="size-input" class="w-full bg-[#111] text-white p-1 rounded text-sm focus:outline-none cursor-pointer">
+                                    <option value="1">Standard</option>
+                                    <option value="0.6" selected>Small (Pro)</option>
+                                    <option value="1.5">Large</option>
+                                </select>
+                            </div>
+                            <div class="glass p-3 rounded-xl">
+                                <label class="text-[10px] uppercase text-gray-500 block mb-1">Duration</label>
+                                <select id="duration-input" class="w-full bg-[#111] text-white p-1 rounded text-sm focus:outline-none cursor-pointer">
+                                    <option value="15">15 Seconds</option>
+                                    <option value="30">30 Seconds</option>
+                                    <option value="45">45 Seconds</option>
+                                    <option value="60" selected>60 Seconds</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="glass p-3 rounded-xl">
+                            <label class="text-[10px] uppercase text-gray-500 block mb-1">Game Mode</label>
+                            <select id="mode-input" class="w-full bg-[#111] text-white p-1 rounded text-sm focus:outline-none cursor-pointer">
+                                <option value="static">Static (Precision)</option>
+                                <option value="gridshot">Gridshot (Speed)</option>
+                                <option value="strafing">Strafing (Tracking)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button id="start-btn" class="w-full py-4 bg-cyan-500 hover:bg-cyan-400 text-black font-800 rounded-xl transition-all transform hover:scale-[1.02] active:scale-95">
+                        START TRAINING
+                    </button>
+                    <p class="text-xs text-gray-500 uppercase tracking-widest">Click to Lock Mouse</p>
+                </div>
+
+                <!-- Last Test Data Sidebar -->
+                <div id="last-data-panel" class="hidden glass p-8 rounded-3xl w-full md:w-80 space-y-6 flex flex-col justify-center">
+                    <h3 class="text-xs uppercase tracking-[0.2em] text-cyan-400 font-800">Last Test Data</h3>
+                    
+                    <div class="space-y-4 text-left">
+                        <div class="border-b border-white/5 pb-2">
+                            <p class="text-[10px] text-gray-500 uppercase">Score</p>
+                            <p id="menu-last-score" class="text-2xl font-800 text-white">0</p>
+                        </div>
+                        <div class="border-b border-white/5 pb-2">
+                            <p class="text-[10px] text-gray-500 uppercase">Accuracy</p>
+                            <p id="menu-last-acc" class="text-2xl font-800 text-white">0%</p>
+                        </div>
+                        <div class="border-b border-white/5 pb-2">
+                            <p class="text-[10px] text-gray-500 uppercase">Avg Reaction</p>
+                            <p id="menu-last-react" class="text-2xl font-800 text-yellow-400">0ms</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-gray-500 uppercase">Hits</p>
+                            <p id="menu-last-hits" class="text-2xl font-800 text-white">0</p>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white/5 p-3 rounded-xl text-[10px] text-gray-400 uppercase leading-relaxed">
+                        Data from previous session is shown here for comparison.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Screen -->
+        <div id="results" class="hidden interactive absolute inset-0 flex items-center justify-center bg-black/80">
+            <div class="glass p-10 rounded-3xl max-w-2xl w-full space-y-8">
+                <h2 class="text-3xl font-800 text-center uppercase tracking-widest">Training Complete</h2>
+                
+                <div class="grid grid-cols-3 gap-6">
+                    <div class="text-center p-4 glass rounded-2xl border-b-4 border-cyan-500">
+                        <p class="text-xs text-gray-400 uppercase">Score</p>
+                        <p id="res-score" class="text-3xl font-800">0</p>
+                    </div>
+                    <div class="text-center p-4 glass rounded-2xl border-b-4 border-blue-500">
+                        <p class="text-xs text-gray-400 uppercase">Accuracy</p>
+                        <p id="res-acc" class="text-3xl font-800">0%</p>
+                    </div>
+                    <div class="text-center p-4 glass rounded-2xl border-b-4 border-yellow-500">
+                        <p class="text-xs text-gray-400 uppercase">Avg Reaction</p>
+                        <p id="res-time" class="text-3xl font-800">0ms</p>
+                    </div>
+                </div>
+
+                <div class="space-y-2 glass p-4 rounded-xl text-center">
+                    <p class="text-sm text-gray-400">Total Targets Hit: <span id="res-hits" class="text-white font-bold">0</span></p>
+                </div>
+
+                <button id="restart-btn" class="w-full py-4 bg-white text-black font-800 rounded-xl hover:bg-gray-200 transition-all">
+                    BACK TO MENU
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let scene, camera, renderer, raycaster;
+        let targets = [];
+        let isPlaying = false;
+        let score = 0, shotsFired = 0, targetsHit = 0, timeLeft = 60;
+        let timerInterval;
+        let sensitivity = 0.002, targetRadius = 0.6, gameMode = 'static';
+        let lastTargetSpawnTime = 0, lastReactionMS = 0, reactionTimes = [];
+        
+        let frameCount = 0, currentFPS = 0, lastFPSUpdate = 0;
+
+        const menu = document.getElementById('menu'), hud = document.getElementById('hud'), results = document.getElementById('results');
+        const scoreVal = document.getElementById('score-val'), timerVal = document.getElementById('timer-val'), accVal = document.getElementById('acc-val');
+        const msVal = document.getElementById('ms-val'), fpsVal = document.getElementById('fps-val'), hitMarker = document.getElementById('hit-marker');
+        const lastDataPanel = document.getElementById('last-data-panel');
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x050505);
+            scene.fog = new THREE.Fog(0x050505, 10, 60);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            document.body.appendChild(renderer.domElement);
+
+            raycaster = new THREE.Raycaster();
+            scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+            const pointLight = new THREE.PointLight(0x00ccff, 1, 50);
+            pointLight.position.set(0, 10, 0);
+            scene.add(pointLight);
+
+            createArena();
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mousedown', handleMouseClick);
+            window.addEventListener('resize', onWindowResize);
+            animate();
+        }
+
+        function createArena() {
+            const grid = new THREE.GridHelper(100, 50, 0x00ccff, 0x222222);
+            scene.add(grid);
+            const roomGeo = new THREE.BoxGeometry(60, 30, 60);
+            const roomMat = new THREE.MeshPhongMaterial({ color: 0x111111, side: THREE.BackSide, transparent: true, opacity: 0.8 });
+            const room = new THREE.Mesh(roomGeo, roomMat);
+            room.position.y = 14.9;
+            scene.add(room);
+        }
+
+        function spawnTarget() {
+            const geometry = new THREE.SphereGeometry(targetRadius, 32, 32);
+            const material = new THREE.MeshPhongMaterial({ color: 0x00ccff, emissive: 0x003366, shininess: 100 });
+            const target = new THREE.Mesh(geometry, material);
+
+            if (gameMode === 'gridshot') {
+                const col = Math.floor(Math.random() * 5) - 2;
+                const row = Math.floor(Math.random() * 3);
+                target.position.set(col * 4, 3 + (row * 4), -18);
+            } else {
+                target.position.x = (Math.random() - 0.5) * 28;
+                target.position.y = 1.5 + (Math.random() * 12);
+                target.position.z = -15 - (Math.random() * 10);
+            }
+
+            if (gameMode === 'strafing') {
+                target.userData.velocity = (Math.random() > 0.5 ? 1 : -1) * (0.05 + Math.random() * 0.1);
+            }
+
+            scene.add(target);
+            targets.push(target);
+            lastTargetSpawnTime = performance.now();
+        }
+
+        function handleMouseMove(e) {
+            if (!isPlaying || document.pointerLockElement !== renderer.domElement) return;
+            camera.rotation.y -= e.movementX * sensitivity;
+            camera.rotation.x -= e.movementY * sensitivity;
+            camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, camera.rotation.x));
+        }
+
+        function handleMouseClick() {
+            if (!isPlaying || document.pointerLockElement !== renderer.domElement) return;
+            shotsFired++;
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+            const intersects = raycaster.intersectObjects(targets);
+            if (intersects.length > 0) onTargetHit(intersects[0].object);
+            updateHUD();
+        }
+
+        function onTargetHit(obj) {
+            targetsHit++;
+            score += (gameMode === 'strafing' ? 150 : 100);
+            lastReactionMS = Math.round(performance.now() - lastTargetSpawnTime);
+            reactionTimes.push(lastReactionMS);
+            hitMarker.style.opacity = '1';
+            setTimeout(() => hitMarker.style.opacity = '0', 50);
+            scene.remove(obj);
+            targets = targets.filter(t => t !== obj);
+            spawnTarget();
+        }
+
+        function updateHUD() {
+            scoreVal.innerText = score;
+            accVal.innerText = (shotsFired === 0 ? 100 : Math.round((targetsHit / shotsFired) * 100)) + '%';
+            timerVal.innerText = timeLeft + 's';
+            msVal.innerText = lastReactionMS + 'ms';
+        }
+
+        function startTraining() {
+            score = 0; shotsFired = 0; targetsHit = 0; lastReactionMS = 0; reactionTimes = [];
+            timeLeft = parseInt(document.getElementById('duration-input').value);
+            sensitivity = parseFloat(document.getElementById('sens-input').value) * 0.002;
+            targetRadius = parseFloat(document.getElementById('size-input').value);
+            gameMode = document.getElementById('mode-input').value;
+
+            targets.forEach(t => scene.remove(t));
+            targets = [];
+            menu.classList.add('hidden');
+            results.classList.add('hidden');
+            hud.classList.remove('hidden');
+            renderer.domElement.requestPointerLock();
+            
+            isPlaying = true;
+            const count = gameMode === 'gridshot' ? 3 : 2;
+            for(let i=0; i<count; i++) spawnTarget();
+            
+            updateHUD();
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateHUD();
+                if (timeLeft <= 0) endGame();
+            }, 1000);
+        }
+
+        function endGame() {
+            isPlaying = false;
+            clearInterval(timerInterval);
+            if(document.pointerLockElement) document.exitPointerLock();
+            
+            hud.classList.add('hidden');
+            results.classList.remove('hidden');
+
+            const finalAcc = (shotsFired === 0 ? 0 : Math.round((targetsHit / shotsFired) * 100)) + '%';
+            const avgReact = reactionTimes.length > 0 ? Math.round(reactionTimes.reduce((a, b) => a + b) / reactionTimes.length) : 0;
+
+            // Update result screen
+            document.getElementById('res-score').innerText = score;
+            document.getElementById('res-acc').innerText = finalAcc;
+            document.getElementById('res-time').innerText = avgReact + 'ms';
+            document.getElementById('res-hits').innerText = targetsHit;
+
+            // Update Home Menu Last Data
+            document.getElementById('menu-last-score').innerText = score;
+            document.getElementById('menu-last-acc').innerText = finalAcc;
+            document.getElementById('menu-last-react').innerText = avgReact + 'ms';
+            document.getElementById('menu-last-hits').innerText = targetsHit;
+            lastDataPanel.classList.remove('hidden');
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const now = performance.now();
+            frameCount++;
+            if (now - lastFPSUpdate > 500) {
+                currentFPS = (frameCount * 1000) / (now - lastFPSUpdate);
+                lastFPSUpdate = now;
+                frameCount = 0;
+                if(isPlaying) fpsVal.innerText = Math.round(currentFPS);
+            }
+
+            if (isPlaying && gameMode === 'strafing') {
+                targets.forEach(t => {
+                    t.position.x += t.userData.velocity;
+                    if (Math.abs(t.position.x) > 25) t.userData.velocity *= -1;
+                });
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        document.getElementById('start-btn').addEventListener('click', startTraining);
+        document.getElementById('restart-btn').addEventListener('click', () => {
+            results.classList.add('hidden');
+            menu.classList.remove('hidden');
+        });
+        window.addEventListener('contextmenu', e => e.preventDefault());
+        window.onload = init;
+    </script>
+</body>
+</html>

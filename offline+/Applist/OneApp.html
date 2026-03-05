@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OneApp - Vanilla JS</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Google Material Symbols (Icons) -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet">
+    <!-- Use Inter font and set default icon style -->
+    <style>
+        :root { font-family: 'Inter', sans-serif; }
+        body { margin: 0; padding: 0; overflow: hidden; }
+
+        /* Custom scrollbar for desktop feel */
+        .scrollbar-thin::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+          background-color: #525252;
+          border-radius: 10px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-track {
+          background-color: #171717;
+          border-radius: 10px;
+        }
+
+        /* Material Symbols style adjustments */
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .one-web-iframe {
+            overflow: hidden;
+        }
+    </style>
+    <!-- Firebase Imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Expose Firebase imports to the global window object for the script block
+        window.Firebase = {
+            initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged,
+            getFirestore, doc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, serverTimestamp
+        };
+
+        // Initialize and start the application
+        window.initApp();
+    </script>
+</head>
+<body class="min-h-screen bg-neutral-900 text-neutral-100 flex flex-col md:flex-row font-sans">
+
+    <!-- The main application container -->
+    <div id="app-container" class="min-h-screen bg-neutral-900 text-neutral-100 flex flex-col md:flex-row font-sans w-full h-screen">
+        <!-- Sidebar will be injected here -->
+        <nav id="sidebar" class="p-4 bg-neutral-900 h-full flex flex-col items-center space-y-4 shadow-2xl md:w-20 w-full md:h-full h-auto"></nav>
+
+        <!-- Main Desktop Area -->
+        <main class="flex-grow p-4 md:p-8 overflow-hidden relative w-full h-full">
+            <header class="mb-6 md:mb-8 flex justify-between items-center h-12">
+                <h1 class="text-4xl font-extrabold text-white">
+                    <span class="text-indigo-500">One</span>App
+                </h1>
+            </header>
+
+            <!-- Windows Container -->
+            <div id="desktop-area" class="absolute inset-0 bg-neutral-900 h-full w-full">
+                <!-- Windows will be injected here -->
+            </div>
+        </main>
+    </div>
+
+
+<script>
+    // --- Global State and Constants ---
+    
+    // Global state object
+    const state = {
+        openWindows: [],
+        windowIdCounter: 0,
+        topZIndex: 1000,
+        isAuthReady: false,
+        userId: null,
+        db: null,
+        notes: [], // State for WebNote data
+        loadingNotes: true
+    };
+
+    // Firebase Globals (must be defined before use in the main script)
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+
+    const NOTES_COLLECTION = () => `artifacts/${appId}/users/${state.userId}/webnotes`;
+
+
+    // App Definitions (Using Material Symbols names for icons)
+    const navItems = [
+        { name: 'Notepad', icon: 'edit_note', defaultWidth: 500, defaultHeight: 400 },
+        { name: 'WebNote', icon: 'sticky_note_2', defaultWidth: 700, defaultHeight: 500 },
+        { name: 'OneWeb', icon: 'language', defaultWidth: 800, defaultHeight: 600 },
+    ];
+
+    // --- Firebase & Auth Initialization ---
+
+    async function initFirebase() {
+        if (!window.Firebase) {
+            console.error("Firebase library not loaded.");
+            return;
+        }
+
+        if (!Object.keys(firebaseConfig).length) {
+            console.warn("Firebase config is missing. Running in development mode.");
+            state.userId = 'anonymous-dev-user';
+            state.isAuthReady = true;
+            renderSidebar();
+            return;
+        }
+
+        try {
+            const app = window.Firebase.initializeApp(firebaseConfig);
+            state.db = window.Firebase.getFirestore(app);
+            const auth = window.Firebase.getAuth(app);
+
+            window.Firebase.onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    state.userId = user.uid;
+                    state.isAuthReady = true;
+                } else {
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await window.Firebase.signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await window.Firebase.signInAnonymously(auth);
+                        }
+                    } catch (error) {
+                        console.error("Firebase Auth Error:", error);
+                        state.userId = crypto.randomUUID();
+                        state.isAuthReady = true;
+                    }
+                }
+                // Once authenticated, render UI and start listening for notes
+                renderSidebar();
+                startNoteListener();
+            });
+        } catch (error) {
+            console.error("Firebase Initialization Error:", error);
+        }
+    }
+
+
+    // --- Core Rendering Logic ---
+
+    function render() {
+        // Redraw all elements that depend on the state
+
+        // 1. Render Sidebar (User ID)
+        renderSidebar();
+
+        // 2. Render Windows
+        const desktopArea = document.getElementById('desktop-area');
+        desktopArea.innerHTML = ''; // Clear existing windows
+
+        // Sort windows by zIndex to ensure correct layering
+        const sortedWindows = [...state.openWindows].sort((a, b) => a.zIndex - b.zIndex);
+
+        for (const windowData of sortedWindows) {
+            const contentHTML = getAppContent(windowData.type, windowData.id);
+            const windowEl = createWindowElement(windowData, contentHTML);
+            desktopArea.appendChild(windowEl);
+        }
+
+        if (state.openWindows.length === 0) {
+            desktopArea.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full text-neutral-600 text-2xl">
+                    <p>Welcome to OneApp!</p>
+                    <p class="text-lg mt-2">Click an icon on the left to launch a Virtual App.</p>
+                </div>
+            `;
+        }
+    }
+
+    function renderSidebar() {
+        const sidebarEl = document.getElementById('sidebar');
+        if (!sidebarEl) return;
+
+        // Base HTML
+        const sidebarHTML = `
+            <div class="text-2xl font-extrabold text-indigo-500 mb-4 hidden md:block">OA</div>
+            <div id="nav-items-container" class="flex md:flex-col flex-row w-full md:space-y-2 space-x-4 md:space-x-0 overflow-x-auto pb-2 md:pb-0">
+                <!-- Nav buttons will be injected -->
+            </div>
+            <div class="mt-auto pt-4 text-xs text-neutral-600 hidden md:block">
+                <p class='text-xs'>User ID:</p>
+                <p class='text-xs font-mono break-all'>${state.userId || 'Connecting...'}</p>
+            </div>
+        `;
+        sidebarEl.innerHTML = sidebarHTML;
+
+        // Inject Nav Buttons and attach listeners
+        const navContainer = document.getElementById('nav-items-container');
+        if (!navContainer) return;
+
+        navItems.forEach(item => {
+            const existingWindow = state.openWindows.find(w => w.type === item.name);
+            const isFocused = existingWindow && existingWindow.zIndex === state.topZIndex;
+
+            const button = document.createElement('button');
+            button.className = `flex flex-col items-center justify-center p-2 md:p-3 rounded-xl transition duration-200 min-w-[70px] md:min-w-0 ${
+                isFocused ? 'bg-indigo-600 text-white shadow-lg' : 'text-neutral-400 hover:bg-neutral-800 hover:text-indigo-400'
+            }`;
+            button.innerHTML = `
+                <span class="material-symbols-outlined w-6 h-6 text-2xl">${item.icon}</span>
+                <span class="text-xs mt-1 hidden md:inline">${item.name}</span>
+            `;
+            button.onclick = () => {
+                if (existingWindow) {
+                    focusWindow(existingWindow.id);
+                } else {
+                    openNewWindow(item.name, item.name);
+                }
+            };
+            navContainer.appendChild(button);
+        });
+    }
+
+    // --- Window Management ---
+
+    function createWindowElement(windowData, contentHTML) {
+        const el = document.createElement('div');
+        el.id = `window-${windowData.id}`;
+        el.className = 'absolute flex flex-col bg-neutral-800 border border-neutral-700 rounded-xl shadow-2xl overflow-hidden transition-shadow duration-100 ease-out';
+        el.style.cssText = `
+            left: ${windowData.x}px;
+            top: ${windowData.y}px;
+            width: ${windowData.width}px;
+            height: ${windowData.height}px;
+            z-index: ${windowData.zIndex};
+            min-width: 300px;
+            min-height: 200px;
+        `;
+        el.addEventListener('mousedown', () => focusWindow(windowData.id));
+
+        const isFocused = windowData.zIndex === state.topZIndex;
+
+        el.innerHTML = `
+            <!-- Title Bar (Drag Handle) -->
+            <div id="titlebar-${windowData.id}" class="flex justify-between items-center p-2 text-sm font-semibold border-b border-neutral-700 cursor-move ${isFocused ? 'bg-indigo-600 text-white' : 'bg-neutral-700 text-neutral-300'}" style="user-select: none;">
+                <div class="flex items-center space-x-2">
+                    ${windowData.title}
+                </div>
+                <button id="close-btn-${windowData.id}" class="p-1 rounded-full bg-red-500 hover:bg-red-600 text-white transition">
+                    <span class="material-symbols-outlined w-4 h-4 text-sm">close</span>
+                </button>
+            </div>
+
+            <!-- Content Area -->
+            <div id="content-area-${windowData.id}" class="flex-grow overflow-auto p-4 bg-neutral-900 scrollbar-thin">
+                ${contentHTML}
+            </div>
+
+            <!-- Resize Handle -->
+            <div id="resize-handle-${windowData.id}" class="absolute bottom-0 right-0 p-2 cursor-nwse-resize text-neutral-500 hover:text-indigo-400 transition">
+                <span class="material-symbols-outlined w-4 h-4 text-base">aspect_ratio</span>
+            </div>
+        `;
+
+        // Attach event listeners for drag, resize, and close
+        el.querySelector(`#close-btn-${windowData.id}`).onclick = () => closeWindow(windowData.id);
+        el.querySelector(`#titlebar-${windowData.id}`).onmousedown = (e) => startDrag(e, windowData.id);
+        el.querySelector(`#resize-handle-${windowData.id}`).onmousedown = (e) => startResize(e, windowData.id);
+
+        return el;
+    }
+
+    function openNewWindow(type, title) {
+        const item = navItems.find(i => i.name === type);
+        state.windowIdCounter += 1;
+        state.topZIndex += 1;
+        const newId = state.windowIdCounter;
+
+        const stagger = newId * 25;
+        const width = item.defaultWidth;
+        const height = item.defaultHeight;
+
+        const newWindow = {
+            id: newId,
+            type,
+            title,
+            x: Math.min(100 + stagger, window.innerWidth - width - 50),
+            y: Math.min(100 + stagger, window.innerHeight - height - 50),
+            width: width,
+            height: height,
+            zIndex: state.topZIndex,
+        };
+
+        state.openWindows.push(newWindow);
+        render();
+    }
+
+    function closeWindow(id) {
+        state.openWindows = state.openWindows.filter(w => w.id !== id);
+        render();
+    }
+
+    function focusWindow(id) {
+        const targetWindow = state.openWindows.find(w => w.id === id);
+        if (!targetWindow || targetWindow.zIndex === state.topZIndex) return;
+
+        state.topZIndex += 1;
+        state.openWindows = state.openWindows.map(w =>
+            w.id === id ? { ...w, zIndex: state.topZIndex } : w
+        );
+        render();
+    }
+
+    function updateWindowBounds(id, newBounds) {
+        const index = state.openWindows.findIndex(w => w.id === id);
+        if (index > -1) {
+            state.openWindows[index] = { ...state.openWindows[index], ...newBounds };
+        }
+    }
+
+    // --- Drag and Resize Handlers ---
+    let activeWindowId = null;
+    let dragOffset = { x: 0, y: 0 };
+    let startBounds = { w: 0, h: 0, x: 0, y: 0 };
+    let resizeDirection = null;
+
+    function startDrag(e, id) {
+        e.preventDefault();
+        focusWindow(id);
+        activeWindowId = id;
+        resizeDirection = null;
+
+        const windowData = state.openWindows.find(w => w.id === id);
+        if (!windowData) return;
+
+        dragOffset = { x: e.clientX - windowData.x, y: e.clientY - windowData.y };
+
+        document.addEventListener('mousemove', handleMove);
+        document.addEventListener('mouseup', handleUp);
+    }
+
+    function startResize(e, id) {
+        e.preventDefault();
+        e.stopPropagation();
+        focusWindow(id);
+        activeWindowId = id;
+        resizeDirection = 'bottom-right'; // Only support bottom-right for simplicity
+
+        const windowData = state.openWindows.find(w => w.id === id);
+        if (!windowData) return;
+
+        startBounds = { w: windowData.width, h: windowData.height, x: e.clientX, y: e.clientY };
+
+        document.addEventListener('mousemove', handleMove);
+        document.addEventListener('mouseup', handleUp);
+    }
+
+    function handleMove(e) {
+        if (!activeWindowId) return;
+
+        const windowEl = document.getElementById(`window-${activeWindowId}`);
+        const windowData = state.openWindows.find(w => w.id === activeWindowId);
+        if (!windowEl || !windowData) return;
+
+        if (!resizeDirection) { // Dragging
+            let newX = e.clientX - dragOffset.x;
+            let newY = e.clientY - dragOffset.y;
+
+            // Clamp position within bounds
+            const desktopArea = document.getElementById('desktop-area');
+            const maxX = desktopArea.clientWidth - windowData.width;
+            const maxY = desktopArea.clientHeight - windowData.height;
+
+            newX = Math.min(Math.max(newX, 0), maxX);
+            newY = Math.min(Math.max(newY, 0), maxY);
+
+            windowEl.style.left = `${newX}px`;
+            windowEl.style.top = `${newY}px`;
+
+            updateWindowBounds(activeWindowId, { x: newX, y: newY });
+        } else { // Resizing (bottom-right)
+            let newWidth = Math.max(startBounds.w + (e.clientX - startBounds.x), 300);
+            let newHeight = Math.max(startBounds.h + (e.clientY - startBounds.y), 200);
+
+            windowEl.style.width = `${newWidth}px`;
+            windowEl.style.height = `${newHeight}px`;
+
+            updateWindowBounds(activeWindowId, { width: newWidth, height: newHeight });
+        }
+    }
+
+    function handleUp() {
+        if (!activeWindowId) return;
+
+        // Clean up listeners
+        document.removeEventListener('mousemove', handleMove);
+        document.removeEventListener('mouseup', handleUp);
+
+        // Finalize state update (optional, mainly to ensure state is consistent)
+        activeWindowId = null;
+        resizeDirection = null;
+        render();
+    }
+
+
+    // --- App Content Rendering ---
+
+    function getAppContent(type, windowId) {
+        switch (type) {
+            case 'Notepad':
+                return renderNotepad(windowId);
+            case 'WebNote':
+                return renderWebNote(windowId);
+            case 'OneWeb':
+                return renderOneWeb(windowId);
+            default:
+                return `<div class="text-red-500">App Not Found</div>`;
+        }
+    }
+
+    function renderNotepad(windowId) {
+        // Initial state for Notepad (in-memory, not persistent)
+        if (!state.notepadContent) state.notepadContent = {};
+        const content = state.notepadContent[windowId] || '';
+        const maxWords = 500;
+        const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
+        const charCount = content.length;
+
+        // Use a hidden container to render and then pull the content back
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = `
+            <div class="flex flex-col h-full min-h-[150px]">
+                <h3 class="text-xl font-bold text-indigo-400 mb-2">Editor</h3>
+                <textarea
+                    id="notepad-input-${windowId}"
+                    class="flex-grow w-full bg-neutral-800 text-neutral-200 p-3 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 border border-neutral-700 resize-none font-mono text-sm shadow-inner transition duration-150 ease-in-out"
+                    placeholder="Start typing your thoughts here..."
+                >${content}</textarea>
+                <div class="mt-2 flex justify-between text-neutral-500 text-xs font-medium">
+                    <span>Characters: <span class="text-indigo-400">${charCount}</span></span>
+                    <span>Words: <span class="font-semibold ${wordCount > maxWords ? 'text-red-500' : 'text-indigo-400'}">${wordCount}</span> / ${maxWords}</span>
+                </div>
+            </div>
+        `;
+
+        // Attach dynamic input handler
+        setTimeout(() => {
+            const textarea = document.getElementById(`notepad-input-${windowId}`);
+            if (textarea) {
+                textarea.oninput = (e) => {
+                    state.notepadContent[windowId] = e.target.value;
+                    // Note: Rerendering the entire window on every input would be slow.
+                    // We only update the internal state here.
+                };
+            }
+        }, 0);
+
+        return tempDiv.innerHTML;
+    }
+
+    // --- WebNote (Firestore) Logic and Rendering ---
+
+    function renderWebNote(windowId) {
+        if (!state.isAuthReady) {
+            return `<div class="text-neutral-400">Authenticating...</div>`;
+        }
+
+        const noteCardsHTML = state.loadingNotes
+            ? `<div class="col-span-2 text-neutral-400">Loading notes...</div>`
+            : state.notes.length === 0
+                ? `<div class="col-span-2 text-neutral-500 italic">No notes yet.</div>`
+                : state.notes.map(note => renderNoteCard(note)).join('');
+
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = `
+            <div class="flex flex-col h-full">
+                <h3 class="text-xl font-bold text-indigo-400 mb-2">Sticky Notes</h3>
+                <div class="mb-4 flex space-x-2">
+                    <input
+                        type="text"
+                        id="new-note-input"
+                        class="flex-grow bg-neutral-800 text-neutral-200 p-2 rounded-lg border border-neutral-700"
+                        placeholder="Add a new quick note..."
+                    />
+                    <button
+                        id="add-note-btn"
+                        class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 text-sm"
+                    >
+                        Add
+                    </button>
+                </div>
+                <div id="notes-grid-${windowId}" class="flex-grow overflow-y-auto grid grid-cols-2 gap-3 pb-2 scrollbar-thin">
+                    ${noteCardsHTML}
+                </div>
+            </div>
+        `;
+
+        // Attach dynamic handlers after DOM is rendered (important for vanilla JS)
+        setTimeout(() => {
+            const inputEl = document.getElementById('new-note-input');
+            const addBtn = document.getElementById('add-note-btn');
+
+            if (inputEl && addBtn) {
+                addBtn.onclick = () => addNote(inputEl.value).then(() => { inputEl.value = ''; });
+                inputEl.onkeydown = (e) => {
+                    if (e.key === 'Enter') {
+                        addNote(inputEl.value).then(() => { inputEl.value = ''; });
+                    }
+                };
+            }
+        }, 0);
+
+        return tempDiv.innerHTML;
+    }
+
+    function renderNoteCard(note) {
+        // We use a console log message for the edit action since window.prompt is forbidden
+        return `
+            <div id="note-card-${note.id}" class="bg-amber-300 p-3 rounded-lg shadow-md relative min-h-[80px] flex flex-col">
+                <p class="flex-grow text-neutral-900 text-xs whitespace-pre-wrap">${note.content}</p>
+                <div class="mt-2 flex justify-end space-x-1">
+                    <button
+                        onclick="startEditNote('${note.id}', '${note.content.replace(/'/g, "\\'")}')"
+                        class="text-xs px-2 py-0.5 text-neutral-700 rounded hover:bg-amber-500 transition"
+                    >
+                        Edit
+                    </button>
+                    <button
+                        onclick="deleteNote('${note.id}')"
+                        class="text-xs px-2 py-0.5 bg-red-500 text-white rounded hover:bg-red-600 transition"
+                    >
+                        Delete
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    function startNoteListener() {
+        if (!state.db || !state.isAuthReady || !state.userId) return;
+
+        const notesRef = window.Firebase.collection(state.db, NOTES_COLLECTION());
+        const q = window.Firebase.query(notesRef);
+
+        window.Firebase.onSnapshot(q, (snapshot) => {
+            const fetchedNotes = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            })).sort((a, b) => (b.createdAt?.toDate() || 0) - (a.createdAt?.toDate() || 0));
+
+            state.notes = fetchedNotes;
+            state.loadingNotes = false;
+
+            // Re-render all open WebNote windows to show the updated list
+            state.openWindows.forEach(w => {
+                if (w.type === 'WebNote') {
+                    const contentArea = document.getElementById(`content-area-${w.id}`);
+                    if (contentArea) {
+                        contentArea.innerHTML = renderWebNote(w.id);
+                    }
+                }
+            });
+
+        }, (error) => {
+            console.error("Error fetching notes:", error);
+            state.loadingNotes = false;
+        });
+    }
+
+    async function addNote(content) {
+        if (!content.trim() || !state.db) return;
+        try {
+            await window.Firebase.addDoc(window.Firebase.collection(state.db, NOTES_COLLECTION()), {
+                content: content.trim(),
+                createdAt: window.Firebase.serverTimestamp(),
+            });
+        } catch (error) {
+            console.error("Error adding note:", error);
+        }
+    }
+
+    async function deleteNote(id) {
+        if (!state.db) return;
+        try {
+            await window.Firebase.deleteDoc(window.Firebase.doc(state.db, NOTES_COLLECTION(), id));
+        } catch (error) {
+            console.error("Error deleting note:", error);
+        }
+    }
+
+    async function updateNote(id, newContent) {
+        if (!state.db || !newContent.trim()) return;
+        try {
+            await window.Firebase.updateDoc(window.Firebase.doc(state.db, NOTES_COLLECTION(), id), {
+                content: newContent.trim(),
+                updatedAt: window.Firebase.serverTimestamp(),
+            });
+        } catch (error) {
+            console.error("Error updating note:", error);
+        }
+    }
+
+    function startEditNote(id, currentContent) {
+        // Since we can't use window.prompt, we will alert the user and ask them to edit via the console log message
+        console.log(`To update note ID ${id}, run this command in your console with the new text:\n\nupdateNote('${id}', 'YOUR NEW NOTE TEXT HERE')`);
+        // Provide a simple modal-like feedback instead of alert
+        const noteEl = document.getElementById(`note-card-${id}`);
+        if (noteEl) {
+            noteEl.classList.add('border-4', 'border-indigo-500', 'animate-pulse');
+            setTimeout(() => {
+                noteEl.classList.remove('border-4', 'border-indigo-500', 'animate-pulse');
+            }, 3000);
+        }
+    }
+
+    // --- OneWeb (Browser) Rendering ---
+
+    function renderOneWeb(windowId) {
+        const defaultSearch = 'Gemini AI';
+        // Simple state for search term in this session
+        if (!state.oneWebSearch) state.oneWebSearch = {};
+        if (!state.oneWebSearch[windowId]) state.oneWebSearch[windowId] = defaultSearch;
+
+        const iframeSrc = `https://www.bing.com/search?q=${encodeURIComponent(state.oneWebSearch[windowId])}`;
+
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = `
+            <div class="flex flex-col h-full">
+                <h3 class="text-xl font-bold text-indigo-400 mb-2">Web Browser</h3>
+                <div class="mb-3 flex space-x-2">
+                    <input
+                        type="text"
+                        id="oneweb-input-${windowId}"
+                        class="flex-grow bg-neutral-800 text-neutral-200 p-2 rounded-lg border border-neutral-700 text-sm"
+                        placeholder="Enter search query..."
+                        value="${state.oneWebSearch[windowId]}"
+                    />
+                    <button
+                        id="oneweb-search-btn-${windowId}"
+                        class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm"
+                    >
+                        Search
+                    </button>
+                </div>
+                <div class="flex-grow overflow-hidden rounded-lg border border-neutral-700">
+                    <iframe
+                        id="oneweb-iframe-${windowId}"
+                        src="${iframeSrc}"
+                        title="OneWeb Bing Browser"
+                        class="w-full h-full one-web-iframe"
+                        sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals"
+                    ></iframe>
+                </div>
+            </div>
+        `;
+
+        // Attach dynamic handlers after DOM is rendered
+        setTimeout(() => {
+            const inputEl = document.getElementById(`oneweb-input-${windowId}`);
+            const searchBtn = document.getElementById(`oneweb-search-btn-${windowId}`);
+
+            const handleSearch = () => {
+                const term = inputEl.value.trim();
+                if (term) {
+                    state.oneWebSearch[windowId] = term;
+                    const iframe = document.getElementById(`oneweb-iframe-${windowId}`);
+                    if (iframe) {
+                        iframe.src = `https://www.bing.com/search?q=${encodeURIComponent(term)}`;
+                    }
+                    // Update input value (for consistency)
+                    inputEl.value = term;
+                }
+            };
+
+            if (inputEl && searchBtn) {
+                searchBtn.onclick = handleSearch;
+                inputEl.onkeydown = (e) => e.key === 'Enter' && handleSearch();
+            }
+        }, 0);
+
+        return tempDiv.innerHTML;
+    }
+
+
+    // --- Global Application Start ---
+
+    window.initApp = function() {
+        initFirebase();
+        // Initial render of the shell before auth completes
+        render();
+    }
+
+</script>
+
+</body>
+</html>

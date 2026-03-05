@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>myKiosk - Advanced Dashboard</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Google Fonts: Material Symbols (for icons) -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Custom 18pt title (1.5rem = 24px) */
+        h1.title-18pt {
+            font-size: 1.5rem; /* 24px, which is 18pt */
+            line-height: 2rem;
+        }
+
+        /* Style for Google Icons */
+        .material-symbols-outlined {
+            /* Setting weight to 500 for a slightly bolder look on icons */
+            font-variation-settings:
+            'FILL' 0,
+            'wght' 500,
+            'GRAD' 0,
+            'opsz' 24;
+            font-size: 1.5rem; /* Default icon size */
+            line-height: 1;
+        }
+
+        /* Widget header icons: slightly larger and more filled */
+        .widget-header .material-symbols-outlined {
+            font-variation-settings:
+            'FILL' 1, /* Filled icon */
+            'wght' 500,
+            'GRAD' 0,
+            'opsz' 20; /* Slightly smaller opsz for better fit */
+            color: #64748b; /* slate-500 default color */
+        }
+
+        /* Sidebar nav icons: large and prominent */
+        .sidebar-nav .material-symbols-outlined {
+            font-variation-settings:
+            'FILL' 0,
+            'wght' 300,
+            'GRAD' 0,
+            'opsz' 40; /* Large size for main navigation */
+        }
+        
+        /* Custom scrollbar for main content */
+        .main-content::-webkit-scrollbar {
+            width: 8px;
+        }
+        .main-content::-webkit-scrollbar-track {
+            background: #1e293b; /* slate-800 */
+        }
+        .main-content::-webkit-scrollbar-thumb {
+            background: #475569; /* slate-600 */
+            border-radius: 4px;
+        }
+        .main-content::-webkit-scrollbar-thumb:hover {
+            background: #64748b; /* slate-500 */
+        }
+
+        /* Light Mode Styles */
+        body.light-mode {
+            background-color: #f1f5f9; /* slate-100 */
+        }
+        .light-mode .sidebar {
+            background-color: #ffffff; /* white */
+            border-right: 1px solid #e2e8f0; /* slate-200 */
+        }
+        .light-mode .sidebar h1 {
+            color: #1e293b; /* slate-800 */
+        }
+        .light-mode .sidebar .sidebar-nav a {
+            color: #94a3b8; /* slate-400 */
+        }
+        /* Note: Active/Hover classes are handled via JS and inline Tailwind classes now */
+        .light-mode .sidebar .footer-text {
+            color: #94a3b8; /* slate-400 */
+        }
+        .light-mode .main-content {
+            background-color: #f8fafc; /* slate-50 */
+        }
+        .light-mode .main-header h2 {
+            color: #334155; /* slate-700 */
+        }
+        .light-mode .theme-toggle {
+            background-color: #e2e8f0; /* slate-200 */
+            color: #475569; /* slate-600 */
+        }
+        .light-mode .theme-toggle:hover {
+            background-color: #cbd5e1; /* slate-300 */
+        }
+        .light-mode .widget {
+            background-color: #ffffff; /* white */
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            border: 1px solid #e2e8f0; /* slate-200 */
+        }
+        .light-mode .widget-header h2 {
+            color: #2563eb; /* blue-600 */
+        }
+        .light-mode .widget-header .material-symbols-outlined {
+            color: #2563eb; /* blue-600 icons in light mode */
+        }
+        .light-mode .info-label {
+            color: #64748b; /* slate-500 */
+        }
+        .light-mode .info-value {
+            color: #1e293b; /* slate-800 */
+        }
+        .light-mode .list-item {
+            color: #334155; /* slate-700 */
+        }
+        .light-mode .list-item .font-medium {
+            color: #1e293b; /* slate-800 */
+        }
+        .light-mode .disclaimer {
+            background-color: #e2e8f0; /* slate-200 */
+            color: #475569; /* slate-600 */
+            border-color: #cbd5e1; /* slate-300 */
+        }
+        .light-mode .main-content::-webkit-scrollbar-track {
+            background: #e2e8f0; /* slate-200 */
+        }
+        .light-mode .main-content::-webkit-scrollbar-thumb {
+            background: #cbd5e1; /* slate-300 */
+        }
+        .light-mode .main-content::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; /* slate-400 */
+        }
+    </style>
+</head>
+<body class="flex min-h-screen bg-slate-900 text-slate-200">
+
+    <!-- Sidebar -->
+    <aside class="sidebar w-24 flex-shrink-0 bg-slate-900 p-4 flex flex-col items-center space-y-8 shadow-lg z-10 transition-colors duration-300">
+        <h1 class="title-18pt font-bold text-white text-center mt-2">myKiosk</h1>
+        
+        <nav class="sidebar-nav flex-1 flex flex-col items-center space-y-6">
+            <!-- Navigation Links with data-view attributes for JS switching -->
+            <a href="#" id="nav-dashboard" data-view="dashboard" class="nav-item active p-3 rounded-xl text-blue-400 bg-slate-700 transition-colors duration-200" title="Dashboard">
+                <span class="material-symbols-outlined">dashboard</span>
+            </a>
+            <a href="#" id="nav-apps" data-view="apps" class="nav-item p-3 rounded-xl text-slate-400 hover:text-blue-400 hover:bg-slate-700 transition-colors duration-200" title="Apps">
+                <span class="material-symbols-outlined">widgets</span>
+            </a>
+            <a href="#" id="nav-settings" data-view="settings" class="nav-item p-3 rounded-xl text-slate-400 hover:text-blue-400 hover:bg-slate-700 transition-colors duration-200" title="Settings">
+                <span class="material-symbols-outlined">tune</span>
+            </a>
+        </nav>
+
+        <div class="footer-text text-center text-xs text-slate-500">
+            &copy; 2025
+        </div>
+    </aside>
+
+    <!-- Main Content Container -->
+    <main class="main-content flex-1 bg-slate-800 p-6 md:p-10 overflow-y-auto h-screen transition-colors duration-300">
+        <!-- Main Header (Title is now dynamic) -->
+        <header class="main-header flex justify-between items-center mb-8">
+            <h2 id="main-title" class="text-3xl font-bold text-white">Dashboard</h2>
+            <button id="themeToggle" class="theme-toggle bg-slate-700 rounded-full p-2 text-slate-300 hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-300" title="Toggle Theme">
+                <span id="themeIcon" class="material-symbols-outlined">light_mode</span>
+            </button>
+        </header>
+
+        <!-- DASHBOARD VIEW CONTENT (Initial View) -->
+        <div id="dashboard-view" class="view-content">
+            <!-- Widgets Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                <!-- Live Clock Widget -->
+                <div class="widget bg-slate-900 rounded-xl p-6 shadow-lg border border-slate-700 transition-colors duration-300">
+                    <div class="widget-header flex items-center mb-4">
+                        <span class="material-symbols-outlined mr-2">schedule</span>
+                        <h2 class="text-lg font-semibold text-blue-400">Live Clock</h2>
+                    </div>
+                    <div class="widget-content text-center">
+                        <div id="clock-time" class="text-5xl font-bold text-white">Loading...</div>
+                        <div id="clock-date" class="text-lg text-slate-400">Loading...</div>
+                    </div>
+                </div>
+
+                <!-- Battery Status Widget -->
+                <div class="widget bg-slate-900 rounded-xl p-6 shadow-lg border border-slate-700 transition-colors duration-300">
+                    <div class="widget-header flex justify-between items-center mb-4">
+                        <div class="flex items-center">
+                            <span class="material-symbols-outlined mr-2">battery_saver</span>
+                            <h2 class="text-lg font-semibold text-blue-400">Battery Status</h2>
+                        </div>
+                        <span id="battery-icon" class="material-symbols-outlined text-slate-500">battery_unknown</span>
+                    </div>
+                    <div class="widget-content space-y-3">
+                        <div class="info-item flex justify-between items-center">
+                            <span class="info-label text-slate-400">Level:</span>
+                            <span id="battery-level" class="info-value text-2xl font-bold text-white">...</span>
+                        </div>
+                        <div class="info-item flex justify-between items-center">
+                            <span class="info-label text-slate-400">Status:</span>
+                            <span id="battery-charging" class="info-value text-slate-100 font-medium">Detecting...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Network Status Widget -->
+                <div class="widget bg-slate-900 rounded-xl p-6 shadow-lg border border-slate-700 transition-colors duration-300">
+                    <div class="widget-header flex items-center mb-4">
+                        <span class="material-symbols-outlined mr-2">wifi</span>
+                        <h2 class="text-lg font-semibold text-blue-400">Network</h2>
+                    </div>
+                    <div class="widget-content space-y-3">
+                        <div class="info-item flex justify-between items-center">
+                            <span class="info-label text-slate-400">Status:</span>
+                            <span id="network-status" class="info-value text-slate-100 font-medium">Detecting...</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Kiosk Features Widget -->
+                <div class="widget bg-slate-900 rounded-xl p-6 shadow-lg border border-slate-700 transition-colors duration-300">
+                    <div class="widget-header flex items-center mb-4">
+                        <span class="material-symbols-outlined mr-2">terminal</span>
+                        <h2 class="text-lg font-semibold text-blue-400">Kiosk Features</h2>
+                    </div>
+                    <ul class="widget-content space-y-2 list-inside">
+                        <li class="list-item text-slate-300">Touch Interface: <span class="font-medium text-green-400">Enabled</span></li>
+                        <li class="list-item text-slate-300">Secure Mode: <span class="font-medium text-green-400">Active</span></li>
+                        <li class="list-item text-slate-300">Remote Management: <span class="font-medium text-green-400">Online</span></li>
+                        <li class="list-item text-slate-300">Content Module: <span class="font-medium text-slate-100">Info v1.2</span></li>
+                    </ul>
+                </div>
+
+                <!-- Operating System Widget -->
+                <div class="widget bg-slate-900 rounded-xl p-6 shadow-lg border border-slate-700 transition-colors duration-300">
+                    <div class="widget-header flex items-center mb-4">
+                        <span class="material-symbols-outlined mr-2">computer</span>
+                        <h2 class="text-lg font-semibold text-blue-400">Operating System</h2>
+                    </div>
+                    <div class="widget-content space-y-3">
+                        <div class="info-item flex justify-between">
+                            <span class="info-label text-slate-400">Name:</span>
+                            <span id="os-name" class="info-value text-slate-100 font-medium">Detecting...</span>
+                        </div>
+                        <div class="info-item flex justify-between">
+                            <span class="info-label text-slate-400">Version:</span>
+                            <span id="os-version" class="info-value text-slate-100 font-medium">Unknown</span>
+                        </div>
+                        <div class="info-item flex justify-between">
+                            <span class="info-label text-slate-400">Architecture:</span>
+                            <span id="platform-arch" class="info-value text-slate-100 font-medium">Detecting...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CPU Info Widget (Title updated to 'CPU' to remove 'rochip' text seen in the screenshot) -->
+                <div class="widget bg-slate-900 rounded-xl p-6 shadow-lg border border-slate-700 transition-colors duration-300">
+                    <div class="widget-header flex items-center mb-4">
+                        <span class="material-symbols-outlined mr-2">developer_board</span>
+                        <h2 class="text-lg font-semibold text-blue-400">CPU</h2>
+                    </div>
+                    <ul class="widget-content space-y-2 list-inside">
+                        <li id="cpuName" class="list-item text-slate-300">Name: <span class="font-medium text-slate-100">Unknown</span></li>
+                        <li id="cpuCores" class="list-item text-slate-300">Cores: <span class="font-medium text-slate-100">Detecting...</span></li>
+                        <li id="cpuThreads" class="list-item text-slate-300">Threads: <span class="font-medium text-slate-100">Detecting...</span></li>
+                    </ul>
+                </div>
+
+                <!-- Graphics Info Widget -->
+                <div class="widget bg-slate-900 rounded-xl p-6 shadow-lg border border-slate-700 transition-colors duration-300">
+                    <div class="widget-header flex items-center mb-4">
+                        <span class="material-symbols-outlined mr-2">stadia_controller</span>
+                        <h2 class="text-lg font-semibold text-blue-400">Graphics</h2>
+                    </div>
+                    <ul class="widget-content space-y-2 list-inside">
+                        <li id="gpuName" class="list-item text-slate-300">GPU: <span class="font-medium text-slate-100">Unknown</span></li>
+                    </ul>
+                </div>
+
+                <!-- Memory Info Widget -->
+                <div class="widget bg-slate-900 rounded-xl p-6 shadow-lg border border-slate-700 transition-colors duration-300">
+                    <div class="widget-header flex items-center mb-4">
+                        <span class="material-symbols-outlined mr-2">memory</span>
+                        <h2 class="text-lg font-semibold text-blue-400">Memory</h2>
+                    </div>
+                    <ul class="widget-content space-y-2 list-inside">
+                        <li id="memorySize" class="list-item text-slate-300">Total Memory: <span class="font-medium text-slate-100">Detecting...</span></li>
+                    </ul>
+                </div>
+
+                <!-- Display Info Widget -->
+                <div class="widget bg-slate-900 rounded-xl p-6 shadow-lg border border-slate-700 transition-colors duration-300">
+                    <div class="widget-header flex items-center mb-4">
+                        <span class="material-symbols-outlined mr-2">monitor</span>
+                        <h2 class="text-lg font-semibold text-blue-400">Display</h2>
+                    </div>
+                    <ul class="widget-content space-y-2 list-inside">
+                        <li id="screenWidth" class="list-item text-slate-300">Resolution: <span class="font-medium text-slate-100">Loading...</span></li>
+                        <li id="refreshRate" class="list-item text-slate-300">Refresh Rate: <span class="font-medium text-slate-100">Loading...</span></li>
+                    </ul>
+                </div>
+            </div> <!-- End Widgets Grid -->
+
+            <!-- Disclaimer -->
+            <p class="disclaimer mt-10 text-sm text-slate-400 text-center p-4 bg-slate-900 border border-slate-700 rounded-lg">
+                <strong>Note on Accuracy:</strong> For security and privacy reasons, web browsers have limited access to detailed hardware specifications. This application displays what is safely accessible. Features like Battery Status may require your permission to function.
+            </p>
+        </div> <!-- End dashboard-view -->
+
+        <!-- APPS VIEW CONTENT (Placeholder) -->
+        <div id="apps-view" class="view-content hidden">
+            <div class="flex flex-col items-center justify-center h-[50vh] p-8 bg-slate-900 rounded-xl border border-slate-700">
+                <span class="material-symbols-outlined text-6xl text-blue-400 mb-4">widgets</span>
+                <h3 class="text-3xl font-bold text-white mb-2">Apps Library</h3>
+                <p class="text-slate-400 text-center">This section will contain all the applications available on the kiosk.</p>
+                <p class="text-sm text-slate-500 mt-2">Coming Soon: App Management & Status</p>
+            </div>
+        </div> <!-- End apps-view -->
+
+        <!-- SETTINGS VIEW CONTENT (Placeholder) -->
+        <div id="settings-view" class="view-content hidden">
+            <div class="flex flex-col items-center justify-center h-[50vh] p-8 bg-slate-900 rounded-xl border border-slate-700">
+                <span class="material-symbols-outlined text-6xl text-blue-400 mb-4">tune</span>
+                <h3 class="text-3xl font-bold text-white mb-2">Kiosk Settings</h3>
+                <p class="text-slate-400 text-center">This area is for adjusting system configurations, display, and security options.</p>
+                <p class="text-sm text-slate-500 mt-2">Coming Soon: Configuration Panel</p>
+            </div>
+        </div> <!-- End settings-view -->
+    </main>
+
+    <script>
+        // --- Theme Toggle ---
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = document.getElementById('themeIcon');
+        const body = document.body;
+
+        function setInitialTheme() {
+            // Default to dark mode unless system prefers light
+            const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+            if (prefersLight) {
+                body.classList.add('light-mode');
+                themeIcon.textContent = 'dark_mode';
+            } else {
+                body.classList.remove('light-mode');
+                themeIcon.textContent = 'light_mode';
+            }
+        }
+
+        themeToggle.addEventListener('click', () => {
+            body.classList.toggle('light-mode');
+            const isLightMode = body.classList.contains('light-mode');
+            themeIcon.textContent = isLightMode ? 'dark_mode' : 'light_mode';
+        });
+
+        // --- Live Clock ---
+        function startClock() {
+            const timeEl = document.getElementById('clock-time');
+            const dateEl = document.getElementById('clock-date');
+
+            function updateClock() {
+                const now = new Date();
+                timeEl.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                dateEl.textContent = now.toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            }
+            updateClock();
+            setInterval(updateClock, 1000); // Update every second
+        }
+
+        // --- Network Info ---
+        function getNetworkInfo() {
+            const statusEl = document.getElementById('network-status');
+            const updateOnlineStatus = () => {
+                const online = navigator.onLine;
+                statusEl.textContent = online ? 'Online' : 'Offline';
+                statusEl.className = online ? 'info-value text-green-400 font-medium' : 'info-value text-red-400 font-medium';
+            };
+            updateOnlineStatus();
+            window.addEventListener('online', updateOnlineStatus);
+            window.addEventListener('offline', updateOnlineStatus);
+        }
+
+        // --- Battery Info (Updated to remove battery_h... and other specific icon names) ---
+        async function getBatteryInfo() {
+            const levelEl = document.getElementById('battery-level');
+            const chargingEl = document.getElementById('battery-charging');
+            const iconEl = document.getElementById('battery-icon');
+
+            if ('getBattery' in navigator) {
+                try {
+                    const battery = await navigator.getBattery();
+                    
+                    const updateBatteryUI = () => {
+                        const level = Math.floor(battery.level * 100);
+                        levelEl.textContent = `${level}%`;
+                        chargingEl.textContent = battery.charging ? 'Charging' : 'Discharging';
+
+                        // Simplified icon logic: only use full, low, and charging.
+                        if (battery.charging) {
+                            iconEl.textContent = 'battery_charging_full';
+                            iconEl.classList.remove('text-red-400'); // Ensure low color is removed
+                            iconEl.classList.add('text-green-400'); // Green when charging
+                        } else if (level > 20) {
+                            iconEl.textContent = 'battery_full';
+                            iconEl.classList.remove('text-red-400', 'text-green-400');
+                            iconEl.classList.add('text-slate-500'); // Default color when full/high
+                        } else {
+                            iconEl.textContent = 'battery_alert'; // Use alert icon for low
+                            iconEl.classList.remove('text-green-400', 'text-slate-500');
+                            iconEl.classList.add('text-red-400'); // Red when low
+                        }
+                    };
+
+                    updateBatteryUI(); // Initial call
+                    battery.addEventListener('levelchange', updateBatteryUI);
+                    battery.addEventListener('chargingchange', updateBatteryUI);
+                } catch (e) {
+                    console.error('Battery API error:', e);
+                    levelEl.textContent = 'N/A';
+                    chargingEl.textContent = 'Error';
+                    iconEl.textContent = 'battery_alert';
+                }
+            } else {
+                levelEl.textContent = 'N/A';
+                chargingEl.textContent = 'Not Supported';
+                iconEl.textContent = 'battery_unknown';
+            }
+        }
+
+        // --- Core Device Info (Original Function) ---
+        function getDeviceInfo() {
+            // OS Information
+            try {
+                const osNameElement = document.getElementById('os-name');
+                const platformArchElement = document.getElementById('platform-arch');
+                let osName = "Unknown";
+                let platform = navigator.platform || 'N/A';
+                let userAgent = navigator.userAgent;
+
+                if (userAgent.includes("Win")) osName = "Windows";
+                else if (userAgent.includes("Mac")) osName = "macOS";
+                else if (userAgent.includes("Linux")) osName = "Linux";
+                else if (userAgent.includes("Android")) osName = "Android";
+                else if (userAgent.includes("iOS")) osName = "iOS";
+                else if (userAgent.includes("CrOS")) osName = "Chrome OS";
+                
+                osNameElement.textContent = osName;
+                platformArchElement.textContent = platform;
+            } catch (e) { console.error('OS Info Error:', e); }
+
+            // CPU Information
+            try {
+                const cpuCoresElement = document.getElementById('cpuCores');
+                const cpuThreadsElement = document.getElementById('cpuThreads');
+                const logicalProcessors = navigator.hardwareConcurrency;
+                if (logicalProcessors) {
+                    cpuThreadsElement.textContent = `Threads: ${logicalProcessors}`;
+                    cpuCoresElement.textContent = `Cores: ${Math.floor(logicalProcessors / 2)} (Est.)`;
+                } else {
+                    cpuThreadsElement.textContent = 'Cores: Unknown';
+                    cpuThreadsElement.textContent = 'Threads: Unknown';
+                }
+            } catch (e) { console.error('CPU Info Error:', e); }
+
+            // Memory Information
+            try {
+                const memorySizeElement = document.getElementById('memorySize');
+                if (navigator.deviceMemory) {
+                    memorySizeElement.textContent = `Total Memory: ${navigator.deviceMemory} GB`;
+                } else {
+                    memorySizeElement.textContent = 'Total Memory: Unknown';
+                }
+            } catch (e) { console.error('Memory Info Error:', e); }
+
+            // Graphics Information
+            try {
+                const gpuNameElement = document.getElementById('gpuName');
+                const canvas = document.createElement('canvas');
+                const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                if (gl) {
+                    const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                    if (debugInfo) {
+                        const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+                        if (renderer) {
+                            gpuNameElement.textContent = `GPU: ${renderer}`;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Error getting GPU info:", e);
+                document.getElementById('gpuName').textContent = 'GPU: Unknown';
+            }
+
+            // Display Information
+            try {
+                const screenWidthElement = document.getElementById('screenWidth');
+                const refreshRateElement = document.getElementById('refreshRate');
+                screenWidthElement.textContent = `Resolution: ${window.screen.width}px x ${window.screen.height}px`;
+
+                if (window.requestAnimationFrame) {
+                    let animationStartTime = null;
+                    let frameCount = 0;
+                    let refreshRateRequest = null;
+                    function measureFPS(timestamp) {
+                        if (!animationStartTime) animationStartTime = timestamp;
+                        else {
+                            const elapsed = timestamp - animationStartTime;
+                            frameCount++;
+                            if (elapsed > 1000) {
+                                const fps = Math.round((frameCount * 1000) / elapsed);
+                                refreshRateElement.textContent = `Refresh Rate: ~${fps} Hz`;
+                                if (refreshRateRequest) cancelAnimationFrame(refreshRateRequest);
+                                return;
+                            }
+                        }
+                        refreshRateRequest = requestAnimationFrame(measureFPS);
+                    }
+                    if (window.refreshRateRequest) cancelAnimationFrame(window.refreshRateRequest);
+                    window.refreshRateRequest = requestAnimationFrame(measureFPS);
+                } else {
+                    refreshRateElement.textContent = `Refresh Rate: Unknown`;
+                }
+            } catch (e) { console.error('Display Info Error:', e); }
+        }
+
+        // --- Navigation/View Switching (New Functionality) ---
+        function setupNavigation() {
+            const navItems = document.querySelectorAll('.nav-item');
+            const viewContents = document.querySelectorAll('.view-content');
+            const mainTitle = document.getElementById('main-title');
+
+            function switchView(targetViewId, targetTitle, targetNavItem) {
+                // 1. Hide all views and remove 'active' class from all nav items
+                viewContents.forEach(view => view.classList.add('hidden'));
+                navItems.forEach(item => {
+                    // Reset styling for all nav items
+                    item.classList.remove('active', 'text-blue-400', 'bg-slate-700');
+                    item.classList.add('text-slate-400', 'hover:text-blue-400', 'hover:bg-slate-700');
+                });
+
+                // 2. Show the target view
+                const targetView = document.getElementById(targetViewId);
+                if (targetView) {
+                    targetView.classList.remove('hidden');
+                }
+
+                // 3. Set the active class and styling on the clicked nav item
+                targetNavItem.classList.add('active', 'text-blue-400', 'bg-slate-700');
+                targetNavItem.classList.remove('text-slate-400', 'hover:text-blue-400', 'hover:bg-slate-700');
+                
+                // 4. Update the main header title
+                mainTitle.textContent = targetTitle;
+            }
+
+            navItems.forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const viewName = item.getAttribute('data-view');
+                    const viewId = `${viewName}-view`;
+                    const viewTitle = viewName.charAt(0).toUpperCase() + viewName.slice(1); // Capitalize first letter
+                    
+                    switchView(viewId, viewTitle, item);
+
+                    // Re-run detection when returning to dashboard to ensure data is fresh
+                    if (viewName === 'dashboard') {
+                        getDeviceInfo();
+                        getBatteryInfo();
+                        getNetworkInfo();
+                    }
+                });
+            });
+
+            // Set initial view state
+            const initialItem = document.getElementById('nav-dashboard');
+            const initialView = document.getElementById('dashboard-view');
+            if (initialItem && initialView) {
+                // Initialize the correct view state on load
+                switchView('dashboard-view', 'Dashboard', initialItem);
+            }
+        }
+
+
+        // --- Initialize Dashboard on Load ---
+        window.onload = () => {
+            setInitialTheme();
+            startClock();
+            // Start navigation setup, which handles initial view display
+            setupNavigation(); 
+
+            // Initial data fetching
+            getNetworkInfo();
+            getBatteryInfo();
+            getDeviceInfo();
+        };
+    </script>
+</body>
+</html>

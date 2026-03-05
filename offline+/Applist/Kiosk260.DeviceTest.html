@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kiosk360 Device Test</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Custom styles for the Inter font and main container */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+
+        :root {
+            --primary-bg: #0f172a; /* Slate-900 */
+            --card-bg: #1e293b; /* Slate-800 */
+            --success-color: #10b981; /* Emerald-500 */
+            --fail-color: #ef4444; /* Red-500 */
+            --accent-color: #3b82f6; /* Blue-500 */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--primary-bg);
+            color: #f8fafc; /* Slate-50 */
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Specific style for the color cycling test area */
+        #display-test-area {
+            height: 150px;
+            cursor: pointer;
+            transition: background-color 0.5s ease;
+        }
+
+        .status-dot {
+            width: 1rem;
+            height: 1rem;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+            display: inline-block;
+        }
+        .status-pending { background-color: #facc15; } /* Yellow-400 */
+        .status-success { background-color: var(--success-color); }
+        .status-fail { background-color: var(--fail-color); }
+
+        /* Animation for the audio signal */
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        #audio-signal {
+            animation: pulse 1s infinite;
+        }
+
+        /* Responsive grid adjustment */
+        @media (min-width: 1024px) {
+            .test-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+    </style>
+</head>
+<body class="p-4 sm:p-8">
+
+    <div id="app" class="w-full max-w-6xl mx-auto">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-extrabold text-white flex items-center justify-center">
+                <i data-lucide="monitor-dot" class="w-8 h-8 mr-3 text-red-500"></i>
+                Kiosk360 Device Diagnostic
+            </h1>
+            <p class="text-slate-400 mt-2">Run comprehensive checks on integrated hardware systems.</p>
+        </header>
+
+        <!-- Main Test Area -->
+        <main class="bg-slate-800 p-6 rounded-xl shadow-2xl">
+            <!-- Global Status Bar -->
+            <div id="global-status" class="bg-blue-900/50 p-4 mb-6 rounded-lg shadow-inner flex justify-between items-center">
+                <p class="text-lg font-semibold">Overall Status: <span id="overall-result" class="text-yellow-400">PENDING</span></p>
+                <button onclick="runAllTests()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200 shadow-lg">
+                    <i data-lucide="play" class="w-5 h-5 inline mr-1"></i> Run All Tests
+                </button>
+            </div>
+
+            <!-- Individual Test Grid -->
+            <div class="test-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                <!-- 1. Display Test -->
+                <div class="bg-slate-900 p-5 rounded-xl shadow-lg border border-slate-700">
+                    <h3 class="text-xl font-semibold mb-3 flex items-center text-red-500">
+                        <i data-lucide="monitor" class="w-6 h-6 mr-2"></i> Display & Pixel Test
+                    </h3>
+                    <p class="text-slate-400 mb-3 text-sm">Cycles primary colors to check for dead pixels.</p>
+                    <div id="display-test-area" onclick="startDisplayTest()" class="rounded-lg shadow-inner bg-slate-700 text-center flex items-center justify-center text-lg font-bold text-white/50">
+                        Click to Start Cycle
+                    </div>
+                    <div class="mt-4 flex justify-between items-center">
+                        <span id="display-status-text" class="text-slate-400 text-sm"></span>
+                        <div id="display-status-dot" class="status-dot status-pending"></div>
+                    </div>
+                </div>
+
+                <!-- 2. Touch/Input Test -->
+                <div class="bg-slate-900 p-5 rounded-xl shadow-lg border border-slate-700">
+                    <h3 class="text-xl font-semibold mb-3 flex items-center text-blue-500">
+                        <i data-lucide="hand-tap" class="w-6 h-6 mr-2"></i> Touch / Input Test
+                    </h3>
+                    <p class="text-slate-400 mb-3 text-sm">Tap or click the box to test screen coordinates.</p>
+                    <div id="touch-test-area" class="h-24 rounded-lg shadow-inner bg-slate-700 border-2 border-dashed border-blue-500/50 flex items-center justify-center text-sm font-medium text-white/70"
+                         ontouchstart="handleTouchInput(event)" onmousedown="handleTouchInput(event)">
+                        Tap Anywhere
+                    </div>
+                    <div class="mt-4 flex justify-between items-center">
+                        <span id="touch-status-text" class="text-slate-400 text-sm">Last Tap: (N/A)</span>
+                        <div id="touch-status-dot" class="status-dot status-pending"></div>
+                    </div>
+                </div>
+
+                <!-- 3. Network Test -->
+                <div class="bg-slate-900 p-5 rounded-xl shadow-lg border border-slate-700">
+                    <h3 class="text-xl font-semibold mb-3 flex items-center text-yellow-500">
+                        <i data-lucide="wifi" class="w-6 h-6 mr-2"></i> Network Connectivity
+                    </h3>
+                    <p class="text-slate-400 mb-3 text-sm">Checks for active internet connection (simulated).</p>
+                    <button onclick="runNetworkTest()" class="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 rounded-lg transition duration-200">
+                        Run Connectivity Check
+                    </button>
+                    <div class="mt-4 flex justify-between items-center">
+                        <span id="network-status-text" class="text-slate-400 text-sm"></span>
+                        <div id="network-status-dot" class="status-dot status-pending"></div>
+                    </div>
+                </div>
+
+                <!-- 4. Camera Test -->
+                <div class="bg-slate-900 p-5 rounded-xl shadow-lg border border-slate-700">
+                    <h3 class="text-xl font-semibold mb-3 flex items-center text-green-500">
+                        <i data-lucide="video" class="w-6 h-6 mr-2"></i> Camera Test (Webcam)
+                    </h3>
+                    <p class="text-slate-400 mb-3 text-sm">Requests access to the front-facing camera.</p>
+                    <video id="camera-preview" class="w-full h-24 bg-slate-700 rounded-lg object-cover" autoplay playsinline muted></video>
+                    <button onclick="runCameraTest()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg transition duration-200 mt-3">
+                        Start Camera Preview
+                    </button>
+                    <div class="mt-4 flex justify-between items-center">
+                        <span id="camera-status-text" class="text-slate-400 text-sm"></span>
+                        <div id="camera-status-dot" class="status-dot status-pending"></div>
+                    </div>
+                </div>
+
+                <!-- 5. Printer Test (Simulated) -->
+                <div class="bg-slate-900 p-5 rounded-xl shadow-lg border border-slate-700">
+                    <h3 class="text-xl font-semibold mb-3 flex items-center text-indigo-500">
+                        <i data-lucide="printer" class="w-6 h-6 mr-2"></i> Receipt Printer (Simulated)
+                    </h3>
+                    <p class="text-slate-400 mb-3 text-sm">Simulates sending a test page to the printer API.</p>
+                    <button onclick="runPrinterTest()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-lg transition duration-200">
+                        Send Test Print
+                    </button>
+                    <div class="mt-4 flex justify-between items-center">
+                        <span id="printer-status-text" class="text-slate-400 text-sm"></span>
+                        <div id="printer-status-dot" class="status-dot status-pending"></div>
+                    </div>
+                </div>
+
+                <!-- 6. Audio Test -->
+                <div class="bg-slate-900 p-5 rounded-xl shadow-lg border border-slate-700">
+                    <h3 class="text-xl font-semibold mb-3 flex items-center text-pink-500">
+                        <i data-lucide="volume-2" class="w-6 h-6 mr-2"></i> Audio Output Test
+                    </h3>
+                    <p class="text-slate-400 mb-3 text-sm">Plays a short, high-frequency test tone.</p>
+                    <button onclick="runAudioTest()" class="w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-2 rounded-lg transition duration-200 flex items-center justify-center">
+                        Play Test Tone
+                        <i id="audio-signal" data-lucide="megaphone" class="w-4 h-4 ml-2 opacity-0 transition-opacity duration-500"></i>
+                    </button>
+                    <div class="mt-4 flex justify-between items-center">
+                        <span id="audio-status-text" class="text-slate-400 text-sm"></span>
+                        <div id="audio-status-dot" class="status-dot status-pending"></div>
+                    </div>
+                </div>
+
+                <!-- 7. Card Reader Test (Simulated) -->
+                <div class="bg-slate-900 p-5 rounded-xl shadow-lg border border-slate-700">
+                    <h3 class="text-xl font-semibold mb-3 flex items-center text-violet-500">
+                        <i data-lucide="credit-card" class="w-6 h-6 mr-2"></i> Card Reader (Simulated)
+                    </h3>
+                    <p class="text-slate-400 mb-3 text-sm">Simulates swiping/tapping a card for hardware recognition.</p>
+                    <button onclick="runCardReaderTest()" class="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold py-2 rounded-lg transition duration-200">
+                        Simulate Card Insert/Tap
+                    </button>
+                    <div class="mt-4 flex justify-between items-center">
+                        <span id="cardreader-status-text" class="text-slate-400 text-sm"></span>
+                        <div id="cardreader-status-dot" class="status-dot status-pending"></div>
+                    </div>
+                </div>
+
+                <!-- 8. Barcode Scanner Test (Simulated) -->
+                <div class="bg-slate-900 p-5 rounded-xl shadow-lg border border-slate-700">
+                    <h3 class="text-xl font-semibold mb-3 flex items-center text-teal-500">
+                        <i data-lucide="scan" class="w-6 h-6 mr-2"></i> QR/Barcode Scanner (Simulated)
+                    </h3>
+                    <p class="text-slate-400 mb-3 text-sm">Simulates receiving data input from a connected scanner.</p>
+                    <button onclick="runScannerTest()" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 rounded-lg transition duration-200">
+                        Simulate Scan Input
+                    </button>
+                    <div class="mt-4 flex justify-between items-center">
+                        <span id="scanner-status-text" class="text-slate-400 text-sm"></span>
+                        <div id="scanner-status-dot" class="status-dot status-pending"></div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal for Messages/Alerts (Instead of alert()) -->
+    <div id="message-modal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-50">
+        <div class="bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-sm border border-slate-700">
+            <h4 id="modal-title" class="text-xl font-bold mb-3 text-red-400">Error</h4>
+            <p id="modal-content" class="text-slate-300 mb-4"></p>
+            <button onclick="document.getElementById('message-modal').classList.add('hidden'); document.getElementById('message-modal').classList.remove('flex');" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg transition duration-200">
+                Acknowledge
+            </button>
+        </div>
+    </div>
+
+
+    <!-- Firebase/Utility Imports and Setup -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global variables provided by the environment
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-kiosk-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let db, auth;
+
+        // Function to initialize Firebase
+        async function initFirebase() {
+            try {
+                if (Object.keys(firebaseConfig).length > 0) {
+                    const app = initializeApp(firebaseConfig);
+                    db = getFirestore(app);
+                    auth = getAuth(app);
+                    
+                    // Authentication check
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                        console.log("Firebase signed in with custom token.");
+                    } else {
+                        await signInAnonymously(auth);
+                        console.log("Firebase signed in anonymously.");
+                    }
+                } else {
+                    console.warn("Firebase configuration not found. Running device tests without database connection.");
+                }
+            } catch (error) {
+                console.error("Firebase Initialization or Auth Failed:", error);
+            }
+        }
+
+        // Initialize on load
+        window.onload = () => {
+            initFirebase();
+            // Replace lucide icons
+            lucide.createIcons();
+            // Set initial status texts
+            document.getElementById('display-status-text').textContent = "Not Started";
+            document.getElementById('touch-status-text').textContent = "Last Tap: (N/A)";
+            document.getElementById('network-status-text').textContent = "Not Started";
+            document.getElementById('camera-status-text').textContent = "Not Started";
+            document.getElementById('printer-status-text').textContent = "Not Started";
+            document.getElementById('audio-status-text').textContent = "Not Started";
+            document.getElementById('cardreader-status-text').textContent = "Not Started";
+            document.getElementById('scanner-status-text').textContent = "Not Started";
+        };
+    </script>
+
+    <!-- Kiosk Test Logic -->
+    <script>
+        // Global utility function for custom alerts
+        function showMessage(title, content) {
+            const modal = document.getElementById('message-modal');
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-content').textContent = content;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        /**
+         * Updates the visual status of an individual test.
+         * @param {string} name - The test name (e.g., 'display').
+         * @param {string} status - 'pending', 'success', or 'fail'.
+         * @param {string} message - The status message to display.
+         */
+        function updateStatus(name, status, message) {
+            const dot = document.getElementById(`${name}-status-dot`);
+            const text = document.getElementById(`${name}-status-text`);
+
+            if (dot) {
+                dot.className = `status-dot status-${status}`;
+            }
+            if (text) {
+                text.textContent = message;
+            }
+
+            // Check if all tests are done to update overall status
+            updateOverallStatus();
+        }
+
+        function updateOverallStatus() {
+            const overallResult = document.getElementById('overall-result');
+            const allDots = document.querySelectorAll('.status-dot');
+
+            let total = allDots.length;
+            let successCount = 0;
+            let failCount = 0;
+            let pendingCount = 0;
+
+            allDots.forEach(dot => {
+                if (dot.classList.contains('status-success')) {
+                    successCount++;
+                } else if (dot.classList.contains('status-fail')) {
+                    failCount++;
+                } else {
+                    pendingCount++;
+                }
+            });
+
+            if (pendingCount > 0) {
+                overallResult.textContent = "PENDING";
+                overallResult.classList.remove('text-green-400', 'text-red-400');
+                overallResult.classList.add('text-yellow-400');
+            } else if (failCount > 0) {
+                overallResult.textContent = "FAILURE";
+                overallResult.classList.remove('text-yellow-400', 'text-green-400');
+                overallResult.classList.add('text-red-400');
+            } else if (successCount === total) {
+                overallResult.textContent = "SUCCESS";
+                overallResult.classList.remove('text-yellow-400', 'text-red-400');
+                overallResult.classList.add('text-green-400');
+            }
+        }
+
+        // --- 1. Display Test Logic (Color Cycling) ---
+        let displayTestInterval = null;
+        const displayColors = ['red-700', 'green-700', 'blue-700', 'slate-700'];
+        let colorIndex = 0;
+
+        function startDisplayTest() {
+            const area = document.getElementById('display-test-area');
+            updateStatus('display', 'pending', 'Cycling colors (3s)... Click to stop and confirm.');
+
+            if (displayTestInterval) {
+                clearInterval(displayTestInterval);
+                displayTestInterval = null;
+            }
+
+            area.textContent = `Click to Confirm: ${displayColors[colorIndex].split('-')[0].toUpperCase()}`;
+            area.className = `rounded-lg shadow-inner text-center flex items-center justify-center text-lg font-bold transition duration-500 bg-${displayColors[colorIndex]}`;
+
+            displayTestInterval = setInterval(() => {
+                colorIndex = (colorIndex + 1) % displayColors.length;
+                const currentColor = displayColors[colorIndex];
+                area.className = `rounded-lg shadow-inner text-center flex items-center justify-center text-lg font-bold transition duration-500 bg-${currentColor}`;
+                area.textContent = `Click to Confirm: ${currentColor.split('-')[0].toUpperCase()}`;
+
+                if (colorIndex === displayColors.length - 1) {
+                    // Test complete after one full cycle
+                    clearInterval(displayTestInterval);
+                    displayTestInterval = null;
+                    updateStatus('display', 'success', 'Display cycle complete. Visual confirmation required.');
+                    area.textContent = 'Test Complete.';
+                }
+            }, 1000);
+        }
+
+        // --- 2. Touch/Input Test Logic ---
+        function handleTouchInput(event) {
+            // Prevent default to stop scrolling/zooming on mobile
+            event.preventDefault();
+
+            // Determine coordinates (use first touch point for simplicity, or event.clientX/Y for mouse)
+            const x = event.touches ? event.touches[0].clientX : event.clientX;
+            const y = event.touches ? event.touches[0].clientY : event.clientY;
+
+            // Get coordinates relative to the test area
+            const rect = event.currentTarget.getBoundingClientRect();
+            const relativeX = Math.floor(x - rect.left);
+            const relativeY = Math.floor(y - rect.top);
+
+            const area = document.getElementById('touch-test-area');
+            area.textContent = `X: ${relativeX}, Y: ${relativeY}`;
+            updateStatus('touch', 'success', `Last Tap: (${relativeX}, ${relativeY})`);
+        }
+
+        // --- 3. Network Test Logic ---
+        function runNetworkTest() {
+            updateStatus('network', 'pending', 'Checking internet status...');
+
+            // Real browser check for online/offline status
+            const isOnline = navigator.onLine;
+
+            setTimeout(() => { // Simulate network latency
+                if (isOnline) {
+                    updateStatus('network', 'success', 'Online: Connection is active.');
+                } else {
+                    updateStatus('network', 'fail', 'Offline: No internet connection detected.');
+                }
+            }, 500);
+        }
+
+        // --- 4. Camera Test Logic (Real Media Access) ---
+        let cameraStream = null;
+
+        async function runCameraTest() {
+            updateStatus('camera', 'pending', 'Requesting camera permission...');
+            const video = document.getElementById('camera-preview');
+
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+                cameraStream = null;
+            }
+
+            try {
+                // Request camera access
+                cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = cameraStream;
+                updateStatus('camera', 'success', 'Camera operational. Previewing video feed.');
+            } catch (error) {
+                updateStatus('camera', 'fail', `Access denied or device error: ${error.name}`);
+                showMessage("Camera Access Failed", "Could not access the camera. Ensure permissions are granted and the device is connected. Error: " + error.message);
+                console.error("Camera Test Error:", error);
+            }
+        }
+
+        // --- 5. Printer Test Logic (Simulated) ---
+        function runPrinterTest() {
+            updateStatus('printer', 'pending', 'Sending test page job to local printer service...');
+
+            // In a real kiosk, this would send an AJAX request to a local service
+            // that interfaces with the physical printer (e.g., a serial/USB device).
+            const success = Math.random() > 0.1; // 90% chance of success simulation
+
+            setTimeout(() => { // Simulate print job latency
+                if (success) {
+                    updateStatus('printer', 'success', 'Print job acknowledged. Status: Ready.');
+                } else {
+                    updateStatus('printer', 'fail', 'Print job failed. Check paper/connection.');
+                    showMessage("Printer Error", "The simulated print job failed. Please check the physical printer connection and paper status.");
+                }
+            }, 1500);
+        }
+
+        // --- 6. Audio Test Logic (Web Audio API) ---
+        function runAudioTest() {
+            const signalIcon = document.getElementById('audio-signal');
+            updateStatus('audio', 'pending', 'Attempting to play test tone...');
+
+            try {
+                // Create an AudioContext instance
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                const audioContext = new AudioContext();
+
+                // Create a basic oscillator node (sine wave)
+                const oscillator = audioContext.createOscillator();
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4 note
+
+                // Connect oscillator to destination (speakers)
+                oscillator.connect(audioContext.destination);
+
+                // Start and stop the tone after a short duration
+                oscillator.start();
+
+                signalIcon.classList.remove('opacity-0');
+                signalIcon.classList.add('opacity-100');
+
+                // Tone duration: 1 second
+                setTimeout(() => {
+                    oscillator.stop();
+                    updateStatus('audio', 'success', 'Test tone played successfully.');
+
+                    signalIcon.classList.remove('opacity-100');
+                    signalIcon.classList.add('opacity-0');
+
+                }, 1000);
+
+            } catch (error) {
+                updateStatus('audio', 'fail', 'Audio API failed or device busy.');
+                showMessage("Audio Test Error", "Failed to initialize or play sound. Check speaker connection and browser settings. Error: " + error.message);
+                console.error("Audio Test Error:", error);
+            }
+        }
+
+        // --- 7. Card Reader Test Logic (Simulated) ---
+        function runCardReaderTest() {
+            updateStatus('cardreader', 'pending', 'Awaiting card detection...');
+
+            const success = Math.random() > 0.2; // 80% success rate
+
+            setTimeout(() => {
+                if (success) {
+                    updateStatus('cardreader', 'success', 'Card detected successfully. (Type: Magstripe/NFC)');
+                } else {
+                    updateStatus('cardreader', 'fail', 'Card detection failed. Check reader connection.');
+                    showMessage("Card Reader Error", "The simulated card reader failed to detect input. Verify the physical reader and connectivity.");
+                }
+            }, 1200);
+        }
+
+        // --- 8. Scanner Test Logic (Simulated) ---
+        function runScannerTest() {
+            updateStatus('scanner', 'pending', 'Awaiting barcode scan input...');
+
+            const success = Math.random() > 0.15; // 85% success rate
+
+            setTimeout(() => {
+                if (success) {
+                    updateStatus('scanner', 'success', 'Data received: 1234567890 (Format: Code 128)');
+                } else {
+                    updateStatus('scanner', 'fail', 'No data received. Scanner timeout.');
+                    showMessage("Scanner Timeout", "The simulated scanner did not receive barcode data within the timeout period. Check alignment and connection.");
+                }
+            }, 800);
+        }
+
+        // --- Global: Run All Tests ---
+        function runAllTests() {
+            // Reset all statuses to pending
+            const testNames = ['display', 'touch', 'network', 'camera', 'printer', 'audio', 'cardreader', 'scanner'];
+            testNames.forEach(name => updateStatus(name, 'pending', 'Test Initiated...'));
+
+            // Run sequential tests (where necessary) and simulated tests
+            startDisplayTest(); // Requires manual confirmation, but starts the cycle
+            // Touch test requires manual interaction, so just sets the state.
+            updateStatus('touch', 'pending', 'Tap the box repeatedly for input testing.');
+
+            // Run programmatic tests
+            runNetworkTest();
+            // Note: Camera and Printer are simulated/manual in a real environment.
+            // For the batch run, we simulate a fast result for the printer.
+            setTimeout(runPrinterTest, 500); // Run printer after a delay
+            setTimeout(runAudioTest, 1000); // Run audio after a delay
+            setTimeout(runCameraTest, 1500); // Run camera after a delay
+            setTimeout(runScannerTest, 2000); // Run scanner after a delay
+            setTimeout(runCardReaderTest, 2500); // Run card reader after a delay
+
+            showMessage("Batch Test Started", "The display, network, printer, audio, card reader, and scanner tests have been initiated. Please manually tap the screen and check the camera preview for complete verification.");
+        }
+    </script>
+</body>
+</html>

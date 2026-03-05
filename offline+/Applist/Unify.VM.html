@@ -1,0 +1,1715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- The title is now Unify VM -->
+    <title>Unify VM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Segoe+UI&display=swap');
+        
+        /* General body styling */
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-image: url('https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?q=80&w=1920&auto-format&fit=crop');
+            background-size: cover;
+            background-position: center;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            margin: 0;
+            padding: 0;
+            color: #fff;
+            transition: background-image 0.5s ease-in-out;
+        }
+
+        /* Taskbar styling */
+        .taskbar {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 48px;
+            background-color: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 10px;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 50; /* Ensure taskbar is above desktop icons */
+        }
+
+        .taskbar-left, .taskbar-center, .taskbar-tray {
+            display: flex;
+            align-items: center;
+            height: 100%;
+            gap: 8px;
+        }
+        
+        /* Center taskbar items */
+        .taskbar-center {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            gap: 8px;
+        }
+
+        .taskbar-icon {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: background-color 0.2s, transform 0.1s;
+            cursor: pointer;
+        }
+        
+        .taskbar-icon.weather {
+            width: auto;
+            min-width: 80px;
+            padding: 0 12px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .taskbar-icon:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+        
+        .taskbar-icon span.material-symbols-outlined {
+            font-size: 24px;
+            color: #fff;
+            filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.2));
+            user-select: none;
+        }
+        
+        .taskbar-icon span {
+            font-size: 0.9rem;
+            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+        }
+
+        .taskbar-search-button {
+             width: 150px;
+             height: 40px;
+             padding: 0 12px;
+             display: flex;
+             align-items: center;
+             justify-content: flex-start;
+             gap: 8px;
+        }
+        
+        .taskbar-search-button span {
+            font-size: 0.9rem;
+            color: #fff;
+            opacity: 0.8;
+        }
+
+        .taskbar-tray {
+            padding: 0 10px;
+            gap: 10px;
+        }
+        
+        .taskbar-tray-icon {
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .taskbar-tray-icon:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Start Menu styling */
+        .start-menu {
+            position: absolute;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 500px;
+            max-width: 90%;
+            height: 600px;
+            background-color: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            display: none;
+            flex-direction: column;
+            padding: 20px;
+            z-index: 100;
+        }
+
+        .start-menu.show {
+            display: flex;
+            animation: fadeIn 0.2s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, 20px);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
+        }
+        
+        .start-menu-header {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            margin-bottom: 15px;
+        }
+
+        .start-menu-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+            color: #fff;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        .start-menu-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            flex-grow: 1;
+            padding: 10px;
+            overflow-y: auto;
+        }
+        
+        .start-menu-grid::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .start-menu-grid::-webkit-scrollbar-thumb {
+            background-color: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+        }
+
+        .app-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .app-item:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+
+        .app-item .material-symbols-outlined {
+            font-size: 48px;
+            margin-bottom: 8px;
+            color: #fff;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        .app-item-name {
+            font-size: 0.8rem;
+            color: #fff;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            font-weight: 500;
+        }
+        
+        /* Desktop Icon styling */
+        .desktop-icon {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            width: 90px;
+            padding: 10px 0;
+            cursor: pointer;
+            position: absolute;
+            user-select: none;
+            transition: background-color 0.2s, transform 0.2s, top 0.2s ease, left 0.2s ease;
+            z-index: 1; /* Below windows */
+        }
+
+        .desktop-icon:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+        
+        .desktop-icon.is-dragging {
+            cursor: grabbing;
+            transform: scale(1.1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            z-index: 40; /* Bring to front while dragging, but below taskbar */
+        }
+
+        .desktop-icon .material-symbols-outlined {
+            font-size: 48px;
+            color: #fff;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+        
+        .desktop-icon-name {
+            font-size: 0.8rem;
+            margin-top: 5px;
+            background-color: rgba(0,0,0,0.5);
+            padding: 2px 5px;
+            border-radius: 4px;
+        }
+        
+        /* Window styling */
+        .window {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+            width: 600px;
+            height: 400px;
+            min-width: 300px;
+            min-height: 200px;
+            display: none;
+            flex-direction: column;
+            z-index: 10; /* Default z-index for windows */
+            overflow: hidden;
+            animation: windowOpen 0.3s ease-in-out;
+            resize: both; /* Enable resizing */
+        }
+        
+        @keyframes windowOpen {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        .window-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            cursor: move;
+            background-color: rgba(255, 255, 255, 0.3);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .window-title {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #fff;
+            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+        }
+        
+        .window-controls {
+            display: flex;
+            gap: 2px;
+        }
+
+        .window-control-button {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .window-control-button:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        .window-control-close:hover {
+            background-color: #e81123;
+        }
+        
+        .window-control-button .material-symbols-outlined {
+            font-size: 18px;
+            color: #fff;
+            user-select: none;
+        }
+        
+        .window-content {
+            flex-grow: 1;
+            padding: 15px;
+            color: #fff;
+            overflow: auto;
+            /* Default dark text shadow, good for light content */
+            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3); 
+        }
+
+        .window-content.light-theme {
+            background-color: rgba(255, 255, 255, 0.7);
+            color: #111;
+            text-shadow: none;
+        }
+        
+        .window-content p {
+            line-height: 1.5;
+            font-size: 0.95rem;
+        }
+
+        .window-content iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background-color: #fff;
+        }
+        
+        /* Context Menu styling */
+        .context-menu {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 8px;
+            padding: 5px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            display: none;
+            z-index: 200;
+            min-width: 150px;
+        }
+
+        .context-menu-item {
+            padding: 8px 12px;
+            color: #333;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .context-menu-item:hover {
+            background-color: #e0e0e0;
+        }
+
+        .context-menu-divider {
+            height: 1px;
+            background-color: #ccc;
+            margin: 5px 0;
+        }
+
+        /* --- Flyout Panel (for WiFi/Sound) --- */
+        .flyout-panel {
+            position: absolute;
+            bottom: 60px;
+            right: 10px;
+            width: 320px;
+            background-color: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            display: none;
+            flex-direction: column;
+            padding: 15px;
+            z-index: 100;
+            color: #333;
+            text-shadow: none;
+        }
+
+        .flyout-panel.show {
+            display: flex;
+            animation: flyIn 0.2s ease-in-out;
+        }
+
+        @keyframes flyIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .flyout-header {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .wifi-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .wifi-item:hover {
+            background-color: rgba(0,0,0,0.1);
+        }
+        .volume-slider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .volume-slider input[type="range"] {
+            flex-grow: 1;
+        }
+
+
+        /* --- New App-Specific Styles --- */
+
+        /* File Explorer */
+        .file-explorer-app {
+            display: flex;
+            height: 100%;
+            padding: 0 !important;
+            background-color: rgba(240, 240, 240, 0.7);
+            color: #333;
+            text-shadow: none;
+        }
+        .fe-sidebar {
+            width: 200px;
+            background-color: rgba(220, 220, 220, 0.8);
+            padding: 10px;
+            border-right: 1px solid rgba(0,0,0,0.1);
+        }
+        .fe-sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .fe-sidebar-item:hover {
+            background-color: rgba(0,0,0,0.1);
+        }
+        .fe-main {
+            flex-grow: 1;
+            padding: 10px;
+            overflow-y: auto;
+        }
+        .fe-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .fe-item:hover {
+            background-color: rgba(0,0,0,0.1);
+        }
+        .fe-item .material-symbols-outlined {
+            color: #555;
+        }
+        .fe-path-bar {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+            gap: 4px;
+        }
+        .fe-path-segment {
+            cursor: pointer;
+            padding: 4px 6px;
+            border-radius: 4px;
+        }
+        .fe-path-segment:hover {
+            background-color: rgba(0,0,0,0.1);
+        }
+
+        /* Settings */
+        .settings-app {
+            padding: 10px !important;
+            background-color: rgba(245, 245, 245, 0.7);
+            color: #333;
+            text-shadow: none;
+        }
+        .settings-app h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 10px;
+        }
+        .wallpaper-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+        }
+        .wallpaper-option {
+            width: 100%;
+            padding-top: 60%; /* Aspect ratio */
+            background-size: cover;
+            background-position: center;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: border-color 0.2s;
+        }
+        .wallpaper-option:hover {
+            border-color: #0078d4;
+        }
+
+        /* Paint */
+        .paint-app {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            padding: 0 !important;
+            background-color: rgba(230, 230, 230, 0.7);
+            color: #333;
+            text-shadow: none;
+        }
+        .paint-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            background-color: rgba(250, 250, 250, 0.8);
+            border-bottom: 1px solid #ccc;
+        }
+        .color-box {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .color-box.active {
+            border-color: #0078d4;
+            transform: scale(1.1);
+        }
+        .paint-canvas {
+            flex-grow: 1;
+            background-color: #fff;
+            cursor: crosshair;
+        }
+        .paint-controls button {
+            padding: 4px 10px;
+            border-radius: 6px;
+            background-color: #e0e0e0;
+            border: 1px solid #bbb;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        .paint-controls button:hover {
+            background-color: #d0d0d0;
+        }
+
+        /* Calendar */
+        .calendar-app {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            padding: 10px !important;
+            color: #333;
+            text-shadow: none;
+        }
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 5px;
+        }
+        .calendar-header h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        .calendar-nav button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+        }
+        .calendar-nav button:hover {
+            background-color: rgba(0,0,0,0.1);
+        }
+        .calendar-grid {
+            flex-grow: 1;
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            grid-template-rows: auto repeat(6, 1fr);
+            gap: 2px;
+        }
+        .calendar-day-name {
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-align: center;
+            padding: 5px;
+        }
+        .calendar-day {
+            font-size: 0.9rem;
+            padding: 8px 5px;
+            border-radius: 4px;
+            background-color: rgba(255, 255, 255, 0.5);
+            transition: background-color 0.2s;
+        }
+        .calendar-day:not(.current-month) {
+            color: #aaa;
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        .calendar-day.today {
+            background-color: #0078d4;
+            color: #fff;
+            font-weight: bold;
+        }
+        .calendar-day:hover:not(.today) {
+            background-color: rgba(0,0,0,0.1);
+        }
+
+
+        /* Mock App Styles */
+        .mock-app-content {
+            display: flex;
+            height: 100%;
+            padding: 0 !important;
+            background-color: rgba(255, 255, 255, 0.7);
+            color: #333;
+            text-shadow: none;
+        }
+        .mock-sidebar {
+            width: 180px;
+            background-color: rgba(240, 240, 240, 0.8);
+            padding: 10px;
+            border-right: 1px solid #ddd;
+        }
+        .mock-main {
+            flex-grow: 1;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        @media (max-width: 768px) {
+            .taskbar-tray {
+                display: none;
+            }
+            .fe-sidebar {
+                width: 120px;
+            }
+        }
+    </style>
+</head>
+<body id="desktop">
+
+    <!-- Desktop Icons -->
+    <div class="desktop-icon" id="recyclebin">
+        <span class="material-symbols-outlined">delete</span>
+        <span class="desktop-icon-name">Recycle Bin</span>
+    </div>
+
+    <!-- Renamed to Unify Explorer -->
+    <div class="desktop-icon" id="fileexplorer">
+        <span class="material-symbols-outlined">folder</span>
+        <span class="desktop-icon-name">Unify Explorer</span>
+    </div>
+
+    <!-- Renamed to Unify Search, id changed to unifysearch, icon changed to search -->
+    <div class="desktop-icon" id="unifysearch">
+        <span class="material-symbols-outlined">search</span>
+        <span class="desktop-icon-name">Unify Search</span>
+    </div>
+    
+    <!-- Start Menu -->
+    <div class="start-menu" id="start-menu">
+        <div class="start-menu-header">
+            <h2>Pinned</h2>
+        </div>
+        <div class="start-menu-grid">
+            <!-- Pinned Apps - Added IDs to all -->
+            <div class="app-item" id="start-menu-settings">
+                <span class="material-symbols-outlined">settings</span>
+                <span class="app-item-name">Settings</span>
+            </div>
+            <div class="app-item" id="start-menu-browser">
+                <span class="material-symbols-outlined">travel_explore</span>
+                <span class="app-item-name">Unify Browser</span>
+            </div>
+            <div class="app-item" id="start-menu-store">
+                <span class="material-symbols-outlined">storefront</span>
+                <span class="app-item-name">Store</span>
+            </div>
+            <div class="app-item" id="start-menu-fileexplorer">
+                <span class="material-symbols-outlined">folder</span>
+                <span class="app-item-name">Unify Explorer</span>
+            </div>
+            <div class="app-item" id="start-menu-mail">
+                <span class="material-symbols-outlined">mail</span>
+                <span class="app-item-name">Mail</span>
+            </div>
+            <div class="app-item" id="start-menu-calendar">
+                <span class="material-symbols-outlined">calendar_today</span>
+                <span class="app-item-name">Calendar</span>
+            </div>
+            <div class="app-item" id="start-menu-photos">
+                <span class="material-symbols-outlined">photo_library</span>
+                <span class="app-item-name">Photos</span>
+            </div>
+            <div class="app-item" id="start-menu-camera">
+                <span class="material-symbols-outlined">photo_camera</span>
+                <span class="app-item-name">Camera</span>
+            </div>
+            <div class="app-item" id="start-menu-paint">
+                <span class="material-symbols-outlined">brush</span>
+                <span class="app-item-name">Paint</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Taskbar -->
+    <div class="taskbar">
+        <!-- Taskbar Left section for the Weather widget -->
+        <div class="taskbar-left">
+            <div class="taskbar-icon weather" id="weather-button">
+                 <span class="material-symbols-outlined">cloud</span>
+                 <span>72°F</span>
+            </div>
+        </div>
+        
+        <!-- Taskbar Center section -->
+        <div class="taskbar-center">
+            <div class="taskbar-icon" id="start-button">
+                <!-- Windows-style icon -->
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4 4.5H11.5V11.5H4V4.5Z" fill="white" stroke="white" stroke-width="0.5"/>
+                    <path d="M12.5 4.5H20V11.5H12.5V4.5Z" fill="white" stroke="white" stroke-width="0.5"/>
+                    <path d="M4 12.5H11.5V19.5H4V12.5Z" fill="white" stroke="white" stroke-width="0.5"/>
+                    <path d="M12.5 12.5H20V19.5H12.5V12.5Z" fill="white" stroke="white" stroke-width="0.5"/>
+                </svg>
+            </div>
+            <!-- Renamed to Unify Search, id changed to open-search-window -->
+            <div class="taskbar-icon taskbar-search-button" id="open-search-window">
+                <span class="material-symbols-outlined">search</span>
+                <span>Unify Search</span>
+            </div>
+            <div class="taskbar-icon" id="taskview-button">
+                <span class="material-symbols-outlined">view_comfy</span>
+            </div>
+            <!-- Added id for Unify Explorer -->
+            <div class="taskbar-icon" id="taskbar-fileexplorer">
+                <span class="material-symbols-outlined">folder</span>
+            </div>
+            <!-- Renamed to Unify Search, icon changed, id added -->
+            <div class="taskbar-icon" id="taskbar-unifysearch">
+                <span class="material-symbols-outlined">search</span>
+            </div>
+        </div>
+        <div class="taskbar-tray">
+            <!-- Added IDs for wifi and sound -->
+            <div class="taskbar-tray-icon" id="wifi-btn">
+                <span class="material-symbols-outlined">wifi</span>
+            </div>
+            <div class="taskbar-tray-icon" id="sound-btn">
+                <span class="material-symbols-outlined">volume_up</span>
+            </div>
+            <div class="taskbar-tray-date">
+                <span id="time"></span>
+                <br>
+                <span id="date"></span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Context Menu -->
+    <div class="context-menu" id="context-menu">
+        <div class="context-menu-item">View</div>
+        <div class="context-menu-item">Sort by</div>
+        <div class="context-menu-item">Refresh</div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item">New</div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item">Display settings</div>
+        <div class="context-menu-item">Personalize</div>
+    </div>
+
+    <!-- Flyout Panel (for WiFi/Sound) -->
+    <div class="flyout-panel" id="flyout-panel">
+        <div class="flyout-header" id="flyout-header">Controls</div>
+        <div class="flyout-content" id="flyout-content">
+            <!-- Content injected by JS -->
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const startButton = document.getElementById('start-button');
+            const startMenu = document.getElementById('start-menu');
+            const desktop = document.getElementById('desktop');
+            const contextMenu = document.getElementById('context-menu');
+            const desktopIcons = document.querySelectorAll('.desktop-icon');
+            
+            // --- New Flyout Panel Elements ---
+            const flyoutPanel = document.getElementById('flyout-panel');
+            const flyoutHeader = document.getElementById('flyout-header');
+            const flyoutContent = document.getElementById('flyout-content');
+            const wifiBtn = document.getElementById('wifi-btn');
+            const soundBtn = document.getElementById('sound-btn');
+
+            // --- Virtual File System ---
+            const virtualFileSystem = {
+                'Desktop': {
+                    'type': 'folder',
+                    'content': {
+                        'Projects': { 'type': 'folder', 'content': {
+                            'website.html': { 'type': 'file' },
+                            'styles.css': { 'type': 'file' }
+                        }},
+                        'README.txt': { 'type': 'file' }
+                    }
+                },
+                'Documents': {
+                    'type': 'folder',
+                    'content': {
+                        'Report.docx': { 'type': 'file' },
+                        'Presentation.pptx': { 'type': 'file' }
+                    }
+                },
+                'Downloads': { 'type': 'folder', 'content': {} },
+                'Pictures': {
+                    'type': 'folder',
+                    'content': {
+                        'Vacation.jpg': { 'type': 'file' },
+                        'Family.png': { 'type': 'file' }
+                    }
+                },
+                'Music': { 'type': 'folder', 'content': {} },
+            };
+
+            // --- Wallpaper Options ---
+            const wallpapers = [
+                'https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?q=80&w=1920&auto-format&fit-crop',
+                'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1920&auto-format&fit=crop',
+                'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?q=80&w=1920&auto-format&fit=crop',
+                'https://images.unsplash.com/photo-1426604966848-d7adac402bff?q=80&w=1920&auto-format&fit=crop',
+                'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?q=80&w=1920&auto-format&fit=crop',
+                'https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?q=80&w=1920&auto-format&fit=crop'
+            ];
+
+            // Define the grid size for snapping
+            const GRID_SIZE = 100;
+
+            // Function to snap an element to the grid
+            function snapToGrid(element) {
+                const rect = element.getBoundingClientRect();
+                const top = isNaN(rect.top) ? 0 : rect.top;
+                const left = isNaN(rect.left) ? 0 : rect.left;
+
+                const snappedTop = Math.round(top / GRID_SIZE) * GRID_SIZE;
+                const snappedLeft = Math.round(left / GRID_SIZE) * GRID_SIZE;
+                
+                element.style.top = `${Math.max(0, snappedTop)}px`;
+                element.style.left = `${Math.max(0, snappedLeft)}px`;
+            }
+
+            // Initially position all desktop icons in a grid
+            desktopIcons.forEach((icon, index) => {
+                const column = Math.floor(index / 10);
+                const row = index % 10;
+                icon.style.top = `${row * GRID_SIZE + 20}px`;
+                icon.style.left = `${column * GRID_SIZE + 20}px`;
+            });
+
+            // Toggle Start Menu
+            startButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                flyoutPanel.classList.remove('show'); // Close flyout when start opens
+                startMenu.classList.toggle('show');
+            });
+
+            // Close Start Menu and Context Menu when clicking elsewhere
+            desktop.addEventListener('click', () => {
+                startMenu.classList.remove('show');
+                contextMenu.style.display = 'none';
+                flyoutPanel.classList.remove('show'); // Close flyout
+            });
+            
+            startMenu.addEventListener('click', (e) => e.stopPropagation());
+            document.querySelector('.taskbar').addEventListener('click', (e) => e.stopPropagation());
+            flyoutPanel.addEventListener('click', (e) => e.stopPropagation()); // Prevent flyout close on self-click
+
+
+            // Context Menu (Right-click)
+            desktop.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                startMenu.classList.remove('show');
+                flyoutPanel.classList.remove('show');
+                const x = Math.min(e.clientX, window.innerWidth - contextMenu.offsetWidth - 10);
+                const y = Math.min(e.clientY, window.innerHeight - contextMenu.offsetHeight - 10);
+                contextMenu.style.top = `${y}px`;
+                contextMenu.style.left = `${x}px`;
+                contextMenu.style.display = 'block';
+            });
+            
+            // Desktop icons double click to open a window
+            desktopIcons.forEach(icon => {
+                icon.addEventListener('dblclick', (e) => {
+                    const iconId = e.currentTarget.id;
+                    openWindow(iconId);
+                });
+            });
+
+            // --- Taskbar and Start Menu Click Listeners ---
+            document.getElementById('open-search-window').addEventListener('click', () => openWindow('unifysearch'));
+            document.getElementById('taskbar-fileexplorer').addEventListener('click', () => openWindow('fileexplorer'));
+            document.getElementById('taskbar-unifysearch').addEventListener('click', () => openWindow('unifysearch'));
+
+            // Start Menu icon clicks
+            const startMenuApps = {
+                'start-menu-settings': 'settings',
+                'start-menu-browser': 'unifysearch',
+                'start-menu-store': 'store',
+                'start-menu-fileexplorer': 'fileexplorer',
+                'start-menu-mail': 'mail',
+                'start-menu-calendar': 'calendar',
+                'start-menu-photos': 'photos',
+                'start-menu-camera': 'camera',
+                'start-menu-paint': 'paint'
+            };
+
+            for (const [id, appName] of Object.entries(startMenuApps)) {
+                document.getElementById(id).addEventListener('click', () => {
+                    openWindow(appName);
+                    startMenu.classList.remove('show');
+                });
+            }
+            
+            // REMOVED: Weather app window opening
+            document.getElementById('weather-button')?.addEventListener('click', () => {
+                console.log("Weather widget clicked. No app to open.");
+                // openWindow('weather'); // This line was removed
+            });
+
+            // --- Flyout Panel Listeners ---
+            wifiBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                startMenu.classList.remove('show');
+                if (flyoutPanel.classList.contains('show') && flyoutHeader.textContent === 'Wi-Fi') {
+                    flyoutPanel.classList.remove('show');
+                } else {
+                    showWifiPanel();
+                }
+            });
+
+            soundBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                startMenu.classList.remove('show');
+                if (flyoutPanel.classList.contains('show') && flyoutHeader.textContent === 'Sound') {
+                    flyoutPanel.classList.remove('show');
+                } else {
+                    showSoundPanel();
+                }
+            });
+
+            function showWifiPanel() {
+                flyoutHeader.textContent = 'Wi-Fi';
+                flyoutContent.innerHTML = `
+                    <div class="wifi-item">
+                        <div class="flex items-center gap-2">
+                            <span class="material-symbols-outlined">wifi</span>
+                            <span>HomeNetwork_5G</span>
+                        </div>
+                        <span class="material-symbols-outlined">lock</span>
+                    </div>
+                    <div class="wifi-item">
+                        <div class="flex items-center gap-2">
+                            <span class="material-symbols-outlined">wifi</span>
+                            <span>Xfinity_Public</span>
+                        </div>
+                    </div>
+                    <div class="wifi-item">
+                        <div class="flex items-center gap-2">
+                            <span class="material-symbols-outlined">wifi</span>
+                            <span>CoffeeShop_Guest</span>
+                        </div>
+                    </div>
+                `;
+                flyoutPanel.classList.add('show');
+            }
+
+            function showSoundPanel() {
+                flyoutHeader.textContent = 'Sound';
+                flyoutContent.innerHTML = `
+                    <div class="volume-slider">
+                        <span class="material-symbols-outlined">volume_up</span>
+                        <input type="range" min="0" max="100" value="75" class="w-full">
+                    </div>
+                `;
+                flyoutPanel.classList.add('show');
+            }
+
+
+            // --- Main Function to Open Windows ---
+            function openWindow(appName) {
+                const existingWindow = document.getElementById(`${appName}-window`);
+                if (existingWindow) {
+                    bringToFront(existingWindow);
+                    return;
+                }
+
+                const windowElement = document.createElement('div');
+                windowElement.id = `${appName}-window`;
+                windowElement.className = 'window';
+                windowElement.style.top = `${Math.random() * 150 + 50}px`;
+                windowElement.style.left = `${Math.random() * 200 + 100}px`;
+
+                let windowContent = '';
+                let windowTitle = '';
+                
+                // Customize content based on the app
+                switch (appName) {
+                    case 'unifysearch':
+                        windowTitle = 'Unify Search';
+                        // Using padding 0 on content, and setting height on internal div
+                        windowContent = `
+                            <div class="window-content" style="padding:0; height: calc(100% - 37px);">
+                                <div class="w-full h-full flex flex-col bg-white text-gray-800">
+                                    <div class="flex items-center space-x-2 p-2 shadow-sm bg-gray-50">
+                                        <button class="material-symbols-outlined text-gray-500 hover:text-gray-900">arrow_back</button>
+                                        <button class="material-symbols-outlined text-gray-500 hover:text-gray-900">arrow_forward</button>
+                                        <button id="refresh-btn" class="material-symbols-outlined text-gray-500 hover:text-gray-900">refresh</button>
+                                        <form id="url-form" class="flex-grow flex items-center">
+                                            <input type="text" id="url-input" class="flex-grow rounded-full bg-gray-200 px-4 py-1 text-sm text-gray-700 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500" placeholder="Search with Unify or enter address...">
+                                            <button type="submit" class="ml-2 px-4 py-1 bg-blue-500 text-white rounded-full text-sm hover:bg-blue-600 transition">Go</button>
+                                        </form>
+                                        <button class="material-symbols-outlined text-gray-500 hover:text-gray-900">more_vert</button>
+                                    </div>
+                                    <iframe id="browser-iframe" src="about:blank" class="flex-grow"></iframe>
+                                </div>
+                            </div>
+                        `;
+                        break;
+                    case 'fileexplorer':
+                        windowTitle = 'Unify Explorer';
+                        windowContent = `
+                            <div class="window-content file-explorer-app">
+                                <div class="fe-sidebar">
+                                    <div class="fe-sidebar-item" data-path="Desktop"><span class="material-symbols-outlined">desktop_windows</span> Desktop</div>
+                                    <div class="fe-sidebar-item" data-path="Documents"><span class="material-symbols-outlined">folder</span> Documents</div>
+                                    <div class="fe-sidebar-item" data-path="Downloads"><span class="material-symbols-outlined">download</span> Downloads</div>
+                                    <div class="fe-sidebar-item" data-path="Pictures"><span class="material-symbols-outlined">image</span> Pictures</div>
+                                    <div class="fe-sidebar-item" data-path="Music"><span class="material-symbols-outlined">music_note</span> Music</div>
+                                </div>
+                                <div class="flex-grow flex flex-col">
+                                    <div class="fe-path-bar">
+                                        <span id="fe-back-btn" class="material-symbols-outlined cursor-pointer p-1 rounded-full hover:bg-gray-200">arrow_back</span>
+                                        <div id="fe-path" class="flex-grow ml-2 text-sm">Desktop</div>
+                                    </div>
+                                    <div id="fe-main" class="fe-main">
+                                        <!-- Content rendered by JS -->
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        break;
+                    case 'settings':
+                        windowTitle = 'Settings';
+                        windowContent = `
+                            <div class="window-content settings-app">
+                                <h3>Personalization</h3>
+                                <p class="text-sm text-gray-600 mb-3">Change your desktop wallpaper.</p>
+                                <div class="wallpaper-grid" id="wallpaper-grid">
+                                    <!-- Wallpapers rendered by JS -->
+                                </div>
+                            </div>
+                        `;
+                        break;
+                    case 'paint':
+                        windowTitle = 'Paint';
+                        windowContent = `
+                            <div class="window-content paint-app">
+                                <div class="paint-controls">
+                                    <span>Color:</span>
+                                    <div class="color-box active" style="background-color: #000000;" data-color="#000000"></div>
+                                    <div class="color-box" style="background-color: #FF0000;" data-color="#FF0000"></div>
+                                    <div class="color-box" style="background-color: #00FF00;" data-color="#00FF00"></div>
+                                    <div class="color-box" style="background-color: #0000FF;" data-color="#0000FF"></div>
+                                    <div class="color-box" style="background-color: #FFFF00;" data-color="#FFFF00"></div>
+                                    <button id="clear-canvas-btn">Clear</button>
+                                </div>
+                                <canvas class="paint-canvas" id="paint-canvas"></canvas>
+                            </div>
+                        `;
+                        break;
+                    case 'recyclebin':
+                        windowTitle = 'Recycle Bin';
+                        windowContent = `<div class="window-content light-theme flex flex-col items-center justify-center h-full">
+                            <span class="material-symbols-outlined text-6xl text-gray-500">delete</span>
+                            <p class="mt-4 text-gray-700">This folder is empty.</p>
+                            <button class="mt-4 bg-blue-500 text-white px-4 py-1 rounded-md text-sm hover:bg-blue-600">Empty Recycle Bin</button>
+                        </div>`;
+                        break;
+                    case 'mail':
+                        windowTitle = 'Mail';
+                        windowContent = `<div class="window-content mock-app-content">
+                            <div class="mock-sidebar">
+                                <div class="font-bold p-2">Folders</div>
+                                <div class="fe-sidebar-item">Inbox</div>
+                                <div class="fe-sidebar-item">Sent</div>
+                                <div class="fe-sidebar-item">Drafts</div>
+                            </div>
+                            <div class="mock-main">
+                                <h3 class="font-bold text-lg mb-4">Inbox</h3>
+                                <div class="p-3 border rounded-lg hover:bg-gray-100 cursor-pointer">
+                                    <div class="font-bold">Team Unify</div>
+                                    <div class="text-sm">Welcome to Unify VM!</div>
+                                </div>
+                            </div>
+                        </div>`;
+                        break;
+                    case 'calendar':
+                        windowTitle = 'Calendar';
+                        // New functional calendar HTML
+                        windowContent = `<div class="window-content light-theme calendar-app">
+                            <div class="calendar-header">
+                                <h3 id="calendar-month-year">Month Year</h3>
+                                <div class="calendar-nav">
+                                    <button id="calendar-prev"><span class="material-symbols-outlined">chevron_left</span></button>
+                                    <button id="calendar-next"><span class="material-symbols-outlined">chevron_right</span></button>
+                                </div>
+                            </div>
+                            <div class="calendar-grid">
+                                <div class="calendar-day-name">Sun</div>
+                                <div class="calendar-day-name">Mon</div>
+                                <div class="calendar-day-name">Tue</div>
+                                <div class="calendar-day-name">Wed</div>
+                                <div class="calendar-day-name">Thu</div>
+                                <div class="calendar-day-name">Fri</div>
+                                <div class="calendar-day-name">Sat</div>
+                            </div>
+                            <div class="calendar-grid" id="calendar-days-grid">
+                                <!-- Days rendered by JS -->
+                            </div>
+                        </div>`;
+                        break;
+                    case 'photos':
+                        windowTitle = 'Photos';
+                        windowContent = `<div class="window-content light-theme">
+                            <div class="grid grid-cols-3 gap-2">
+                                <img src="https://placehold.co/300x300/EEE/777?text=Photo+1" class="rounded-lg">
+                                <img src="https://placehold.co/300x300/EEE/777?text=Photo+2" class="rounded-lg">
+                                <img src="https://placehold.co/300x300/EEE/777?text=Photo+3" class="rounded-lg">
+                            </div>
+                        </div>`;
+                        break;
+                    case 'camera':
+                        windowTitle = 'Camera';
+                        windowContent = `<div class="window-content light-theme flex flex-col items-center justify-center h-full bg-black">
+                            <div class="w-full h-full bg-gray-800 flex items-center justify-center">
+                                <span class="material-symbols-outlined text-8xl text-gray-500">videocam_off</span>
+                            </div>
+                            <button class="absolute bottom-4 bg-white rounded-full w-16 h-16 border-4 border-gray-300"></button>
+                        </div>`;
+                        break;
+                    case 'store':
+                        windowTitle = 'Store';
+                        windowContent = `<div class="window-content light-theme">
+                            <h3 class="font-bold text-lg mb-4">Top Apps</h3>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="p-4 border rounded-lg flex items-center gap-4">
+                                    <img src="https://placehold.co/64x64/0078D4/FFF?text=App" class="rounded-lg">
+                                    <div>
+                                        <div class="font-bold">Cool App</div>
+                                        <button class="text-sm bg-gray-200 px-3 py-1 rounded-full mt-1">Get</button>
+                                    </div>
+                                </div>
+                                <div class="p-4 border rounded-lg flex items-center gap-4">
+                                    <img src="https://placehold.co/64x64/107C10/FFF?text=Game" class="rounded-lg">
+                                    <div>
+                                        <div class="font-bold">Fun Game</div>
+                                        <button class="text-sm bg-gray-200 px-3 py-1 rounded-full mt-1">Get</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>`;
+                        break;
+                    case 'weather':
+                        // This window is no longer opened by the widget, but we keep the markup
+                        windowTitle = 'Weather';
+                        windowContent = `<div class="window-content light-theme flex flex-col items-center justify-center h-full">
+                            <span class="material-symbols-outlined text-8xl text-blue-500">cloud</span>
+                            <div class="text-6xl font-bold mt-2">72°F</div>
+                            <div class="text-xl text-gray-600">Partly Cloudy</div>
+                            <div class="text-gray-500 mt-1">/no location/</div>
+                        </div>`;
+                        break;
+                    default:
+                        windowTitle = appName.charAt(0).toUpperCase() + appName.slice(1);
+                        windowContent = `<div class="window-content"><p>This is a mock window for the ${appName} app.</p></div>`;
+                        break;
+                }
+
+                windowElement.innerHTML = `
+                    <div class="window-header">
+                        <span class="window-title">${windowTitle}</span>
+                        <div class="window-controls">
+                            <div class="window-control-button" id="minimize-btn">
+                                <span class="material-symbols-outlined">minimize</span>
+                            </div>
+                            <div class="window-control-button" id="maximize-btn">
+                                <span class="material-symbols-outlined">crop_square</span>
+                            </div>
+                            <div class="window-control-button window-control-close" id="close-btn">
+                                <span class="material-symbols-outlined">close</span>
+                            </div>
+                        </div>
+                    </div>
+                    ${windowContent}
+                `;
+
+                desktop.appendChild(windowElement);
+                windowElement.style.display = 'flex';
+                bringToFront(windowElement);
+                
+                // Add window controls
+                windowElement.querySelector('#close-btn').addEventListener('click', () => {
+                    windowElement.remove();
+                });
+                setupMaximize(windowElement);
+                
+                // --- Call setup functions for interactive apps ---
+                if (appName === 'unifysearch') setupBrowser(windowElement);
+                if (appName === 'fileexplorer') setupFileExplorer(windowElement, virtualFileSystem);
+                if (appName === 'settings') setupSettings(windowElement, wallpapers);
+                if (appName === 'paint') setupPaint(windowElement);
+                if (appName === 'calendar') setupCalendar(windowElement); // New Calendar setup
+
+                dragElement(windowElement, windowElement.querySelector('.window-header'));
+                windowElement.addEventListener('mousedown', () => bringToFront(windowElement));
+            }
+
+            // --- App Setup Functions ---
+
+            function setupBrowser(windowElement) {
+                const urlForm = windowElement.querySelector('#url-form');
+                const urlInput = windowElement.querySelector('#url-input');
+                const browserIframe = windowElement.querySelector('#browser-iframe');
+                const refreshBtn = windowElement.querySelector('#refresh-btn');
+
+                urlForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    let url = urlInput.value.trim();
+                    if (!url.startsWith('http://') && !url.startsWith('https://') && url.includes('.')) {
+                        url = 'https://' + url;
+                    } else if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                        // Use Bing search as requested
+                        url = `https://www.bing.com/search?q=${encodeURIComponent(url)}`;
+                    }
+                    try {
+                        browserIframe.src = url;
+                    } catch (error) {
+                        console.error("Error setting iframe src:", error);
+                        browserIframe.src = 'about:blank';
+                    }
+                });
+                refreshBtn.addEventListener('click', () => {
+                    try {
+                        browserIframe.src = browserIframe.src;
+                    } catch (error) { console.error("Error refreshing iframe:", error); }
+                });
+            }
+
+            function setupFileExplorer(windowElement, vfs) {
+                const mainView = windowElement.querySelector('#fe-main');
+                const pathView = windowElement.querySelector('#fe-path');
+                const backBtn = windowElement.querySelector('#fe-back-btn');
+                let currentPath = ['Desktop']; // Start at Desktop
+                let history = [['Desktop']];
+
+                function getFolderByPath(path) {
+                    let current = vfs;
+                    for (const part of path) {
+                        if (current[part] && current[part].type === 'folder') {
+                            current = current[part].content;
+                        } else {
+                            return (part === 'Desktop' && path.length === 1) ? vfs.Desktop.content : null;
+                        }
+                    }
+                    if (path.length === 1 && path[0] === 'Desktop') return vfs.Desktop.content;
+                    if (path.length === 1 && vfs[path[0]]) return vfs[path[0]].content;
+                    
+                    let obj = vfs;
+                    for(const p of path) { obj = obj[p].content; }
+                    return obj;
+                }
+
+                function render(path) {
+                    const folderContent = getFolderByPath(path);
+                    mainView.innerHTML = '';
+                    if (!folderContent) {
+                        mainView.innerHTML = '<p>Folder not found.</p>';
+                        return;
+                    }
+                    
+                    Object.entries(folderContent).filter(([, item]) => item.type === 'folder').forEach(([name]) => {
+                        mainView.innerHTML += `
+                            <div class="fe-item" data-name="${name}" data-type="folder">
+                                <span class="material-symbols-outlined">folder</span>
+                                <span>${name}</span>
+                            </div>`;
+                    });
+                    
+                    Object.entries(folderContent).filter(([, item]) => item.type === 'file').forEach(([name]) => {
+                        mainView.innerHTML += `
+                            <div class="fe-item" data-name="${name}" data-type="file">
+                                <span class="material-symbols-outlined">description</span>
+                                <span>${name}</span>
+                            </div>`;
+                    });
+                    
+                    pathView.textContent = path.join(' > ');
+                    
+                    mainView.querySelectorAll('.fe-item[data-type="folder"]').forEach(el => {
+                        el.addEventListener('click', () => {
+                            const folderName = el.dataset.name;
+                            const newPath = [...path, folderName];
+                            history.push(newPath);
+                            currentPath = newPath;
+                            render(currentPath);
+                        });
+                    });
+                }
+                
+                backBtn.addEventListener('click', () => {
+                    if (history.length > 1) {
+                        history.pop();
+                        currentPath = history[history.length - 1];
+                        render(currentPath);
+                    }
+                });
+
+                windowElement.querySelectorAll('.fe-sidebar-item').forEach(el => {
+                    el.addEventListener('click', () => {
+                        const path = [el.dataset.path];
+                        history = [path]; // Reset history
+                        currentPath = path;
+                        render(currentPath);
+                    });
+                });
+
+                render(currentPath); // Initial render
+            }
+
+            function setupSettings(windowElement, wallpaperList) {
+                const grid = windowElement.querySelector('#wallpaper-grid');
+                if (!grid) return;
+                
+                wallpaperList.forEach(url => {
+                    const option = document.createElement('div');
+                    option.className = 'wallpaper-option';
+                    option.style.backgroundImage = `url(${url})`;
+                    option.addEventListener('click', () => {
+                        document.body.style.backgroundImage = `url(${url})`;
+                    });
+                    grid.appendChild(option);
+                });
+            }
+
+            function setupPaint(windowElement) {
+                const canvas = windowElement.querySelector('#paint-canvas');
+                const controls = windowElement.querySelector('.paint-controls');
+                const clearBtn = windowElement.querySelector('#clear-canvas-btn');
+                if (!canvas || !controls || !clearBtn) return;
+                
+                const ctx = canvas.getContext('2d');
+                let isDrawing = false;
+                let currentColor = '#000000';
+                
+                function resizeCanvas() {
+                    canvas.width = canvas.offsetWidth;
+                    canvas.height = canvas.offsetHeight;
+                    ctx.lineCap = 'round';
+                    ctx.lineWidth = 5;
+                    ctx.strokeStyle = currentColor;
+                }
+                
+                const resizeObserver = new ResizeObserver(() => {
+                    resizeCanvas();
+                });
+                resizeObserver.observe(windowElement);
+                
+                resizeCanvas(); 
+
+                function startDraw(e) {
+                    isDrawing = true;
+                    draw(e);
+                }
+                
+                function stopDraw() {
+                    isDrawing = false;
+                    ctx.beginPath();
+                }
+                
+                function draw(e) {
+                    if (!isDrawing) return;
+                    const rect = canvas.getBoundingClientRect();
+                    const x = (e.clientX || e.touches[0].clientX) - rect.left;
+                    const y = (e.clientY || e.touches[0].clientY) - rect.top;
+                    
+                    ctx.lineTo(x, y);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                }
+                
+                canvas.addEventListener('mousedown', startDraw);
+                canvas.addEventListener('mousemove', draw);
+                canvas.addEventListener('mouseup', stopDraw);
+                canvas.addEventListener('mouseout', stopDraw);
+                
+                canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDraw(e); }, { passive: false });
+                canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); }, { passive: false });
+                canvas.addEventListener('touchend', stopDraw);
+                
+                controls.querySelectorAll('.color-box').forEach(box => {
+                    box.addEventListener('click', () => {
+                        controls.querySelector('.color-box.active')?.classList.remove('active');
+                        box.classList.add('active');
+                        currentColor = box.dataset.color;
+                        ctx.strokeStyle = currentColor;
+                    });
+                });
+                
+                clearBtn.addEventListener('click', () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                });
+            }
+
+            // --- New Calendar Setup Function ---
+            function setupCalendar(windowElement) {
+                const monthYearEl = windowElement.querySelector('#calendar-month-year');
+                const daysGridEl = windowElement.querySelector('#calendar-days-grid');
+                const prevBtn = windowElement.querySelector('#calendar-prev');
+                const nextBtn = windowElement.querySelector('#calendar-next');
+                
+                let currentDate = new Date();
+                
+                function renderCalendar() {
+                    const year = currentDate.getFullYear();
+                    const month = currentDate.getMonth();
+                    
+                    monthYearEl.textContent = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(currentDate);
+                    
+                    daysGridEl.innerHTML = '';
+                    
+                    const firstDay = new Date(year, month, 1).getDay();
+                    const daysInMonth = new Date(year, month + 1, 0).getDate();
+                    const daysInPrevMonth = new Date(year, month, 0).getDate();
+                    
+                    const today = new Date();
+                    
+                    // Previous month days
+                    for (let i = firstDay; i > 0; i--) {
+                        daysGridEl.innerHTML += `<div class="calendar-day">${daysInPrevMonth - i + 1}</div>`;
+                    }
+                    
+                    // Current month days
+                    for (let i = 1; i <= daysInMonth; i++) {
+                        let classes = 'calendar-day current-month';
+                        if (i === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+                            classes += ' today';
+                        }
+                        daysGridEl.innerHTML += `<div class="${classes}">${i}</div>`;
+                    }
+                    
+                    // Next month days
+                    const totalDays = firstDay + daysInMonth;
+                    const nextDays = (7 - (totalDays % 7)) % 7;
+                    for (let i = 1; i <= nextDays; i++) {
+                        daysGridEl.innerHTML += `<div class="calendar-day">${i}</div>`;
+                    }
+                }
+                
+                prevBtn.addEventListener('click', () => {
+                    currentDate.setMonth(currentDate.getMonth() - 1);
+                    renderCalendar();
+                });
+                
+                nextBtn.addEventListener('click', () => {
+                    currentDate.setMonth(currentDate.getMonth() + 1);
+                    renderCalendar();
+                });
+                
+                renderCalendar();
+            }
+
+
+            function setupMaximize(windowElement) {
+                const maximizeBtn = windowElement.querySelector('#maximize-btn');
+                let isMaximized = false;
+                let originalRect = {};
+                
+                maximizeBtn.addEventListener('click', () => {
+                    if (isMaximized) {
+                        windowElement.style.top = originalRect.top;
+                        windowElement.style.left = originalRect.left;
+                        windowElement.style.width = originalRect.width;
+                        windowElement.style.height = originalRect.height;
+                        maximizeBtn.querySelector('.material-symbols-outlined').textContent = 'crop_square';
+                        windowElement.style.resize = 'both';
+                        isMaximized = false;
+                    } else {
+                        originalRect = {
+                            top: windowElement.style.top,
+                            left: windowElement.style.left,
+                            width: windowElement.style.width,
+                            height: windowElement.style.height
+                        };
+                        windowElement.style.top = '0';
+                        windowElement.style.left = '0';
+                        windowElement.style.width = '100vw';
+                        windowElement.style.height = 'calc(100vh - 48px)'; // Full height minus taskbar
+                        maximizeBtn.querySelector('.material-symbols-outlined').textContent = 'filter_none';
+                        windowElement.style.resize = 'none';
+                        isMaximized = true;
+                    }
+                });
+            }
+
+            function bringToFront(windowElement) {
+                let zIndexes = Array.from(document.querySelectorAll('.window')).map(w => parseInt(w.style.zIndex) || 10);
+                let highestZIndex = Math.max(...zIndexes, 10);
+                windowElement.style.zIndex = highestZIndex + 1;
+            }
+
+            function dragIcon(iconElement) {
+                let isDragging = false;
+                let offsetX, offsetY;
+                let clickTimer = null;
+
+                iconElement.addEventListener('mousedown', (e) => {
+                    if (e.button !== 0) return;
+                    
+                    isDragging = false; // Reset dragging flag on mousedown
+                    clickTimer = setTimeout(() => {
+                        // If mouse is held down long enough, start drag
+                        isDragging = true;
+                        e.preventDefault();
+                        iconElement.classList.add('is-dragging');
+                        iconElement.style.transition = 'none';
+
+                        const rect = iconElement.getBoundingClientRect();
+                        offsetX = e.clientX - rect.left;
+                        offsetY = e.clientY - rect.top;
+
+                        document.addEventListener('mousemove', onMouseMove);
+                    }, 200); // 200ms delay to differentiate click from drag
+
+                    document.addEventListener('mouseup', onMouseUp, { once: true });
+                });
+
+                function onMouseMove(e) {
+                    if (!isDragging) return;
+
+                    const newLeft = e.clientX - offsetX;
+                    const newTop = e.clientY - offsetY;
+                    
+                    const clampedTop = Math.min(Math.max(0, newTop), window.innerHeight - 48 - iconElement.offsetHeight);
+                    const clampedLeft = Math.min(Math.max(0, newLeft), window.innerWidth - iconElement.offsetWidth);
+
+                    iconElement.style.left = `${clampedLeft}px`;
+                    iconElement.style.top = `${clampedTop}px`;
+                }
+
+                function onMouseUp(e) {
+                    clearTimeout(clickTimer); // Cancel drag start if it was just a click
+                    if (!isDragging) {
+                        // This was a click, not a drag
+                        document.removeEventListener('mousemove', onMouseMove);
+                        return;
+                    }
+                    
+                    // This was a drag
+                    isDragging = false;
+                    iconElement.classList.remove('is-dragging');
+                    iconElement.style.transition = '';
+                    snapToGrid(iconElement);
+
+                    document.removeEventListener('mousemove', onMouseMove);
+                }
+            }
+            
+            desktopIcons.forEach(icon => {
+                dragIcon(icon);
+            });
+
+            function dragElement(elmnt, dragHandle) {
+                let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+                dragHandle.onmousedown = dragMouseDown;
+
+                function dragMouseDown(e) {
+                    if (e.button !== 0) return;
+                    e = e || window.event;
+                    e.preventDefault();
+                    pos3 = e.clientX;
+                    pos4 = e.clientY;
+                    document.onmouseup = closeDragElement;
+                    document.onmousemove = elementDrag;
+                }
+
+                function elementDrag(e) {
+                    e = e || window.event;
+                    e.preventDefault();
+                    pos1 = pos3 - e.clientX;
+                    pos2 = pos4 - e.clientY;
+                    pos3 = e.clientX;
+                    pos4 = e.clientY;
+                    
+                    const newTop = elmnt.offsetTop - pos2;
+                    const newLeft = elmnt.offsetLeft - pos1;
+                    
+                    const clampedTop = Math.min(Math.max(0, newTop), window.innerHeight - 48 - 20); // 20px buffer
+                    const clampedLeft = Math.min(Math.max(0, newLeft), window.innerWidth - 20); // 20px buffer
+                    
+                    elmnt.style.top = `${clampedTop}px`;
+                    elmnt.style.left = `${clampedLeft}px`;
+                }
+
+                function closeDragElement(e) {
+                    if (e.button !== 0) return;
+                    document.onmouseup = null;
+                    document.onmousemove = null;
+                }
+            }
+
+            function updateTimeAndDate() {
+                const now = new Date();
+                const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const date = now.toLocaleDateString([], { day: 'numeric', month: 'short' });
+                const timeEl = document.getElementById('time');
+                const dateEl = document.getElementById('date');
+                if (timeEl) timeEl.textContent = time;
+                if (dateEl) dateEl.textContent = date;
+            }
+
+            updateTimeAndDate();
+            setInterval(updateTimeAndDate, 1000);
+        });
+    </script>
+</body>
+</html>

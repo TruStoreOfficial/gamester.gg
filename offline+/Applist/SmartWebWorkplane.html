@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workplane</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#1f2937">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="description" content="Your personal workplane for work or gaming.">
+    
+    <!-- Dynamically generated Manifest -->
+    <link id="manifest-link" rel="manifest">
+
+    <!-- Custom Fonts (Inter) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overscroll-behavior: none;
+        }
+        
+        /* Custom scrollbar for widgets */
+        .widget-content, .todo-list {
+            scrollbar-width: thin;
+            scrollbar-color: #4b5563 transparent;
+        }
+        .widget-content::-webkit-scrollbar,
+        .todo-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        .widget-content::-webkit-scrollbar-thumb,
+        .todo-list::-webkit-scrollbar-thumb {
+            background-color: #4b5563;
+            border-radius: 20px;
+        }
+        .widget-content::-webkit-scrollbar-track,
+        .todo-list::-webkit-scrollbar-track {
+            background-color: transparent;
+        }
+
+        /* Prevent ugly resize handles on textareas */
+        textarea {
+            resize: none;
+        }
+
+        /* Glassmorphism style for widgets */
+        .widget {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative; /* For delete button */
+            overflow: hidden; /* Prevent content spill */
+        }
+        
+        /* Style for the workplane itself */
+        #workplane {
+            background-color: #111827; /* Darker bg for contrast */
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            transition: all 0.3s ease-in-out;
+            overflow: hidden; /* Prevent widgets from spilling out */
+            border-radius: 1rem; /* Rounded corners for the 'device' */
+            border: 2px solid rgba(255, 255, 0.1);
+            grid-auto-rows: minmax(100px, 1fr); /* Ensure grid rows have a min height */
+        }
+
+        /* Calculator button styles */
+        .calc-btn {
+            @apply bg-gray-600/50 hover:bg-gray-500/50 rounded-md text-white font-semibold text-lg transition-all;
+        }
+        .calc-btn.op {
+            @apply bg-blue-600/70 hover:bg-blue-500/70;
+        }
+
+        /* Todo list styles */
+        .todo-item {
+            @apply flex items-center space-x-2 p-2 rounded-md hover:bg-white/10;
+        }
+        .todo-item input[type="text"] {
+            @apply bg-transparent flex-1 focus:outline-none text-sm;
+        }
+        .todo-item input[type="checkbox"] {
+            @apply rounded-sm;
+        }
+        .todo-item .delete-task {
+            @apply opacity-20 hover:opacity-100 text-red-400 font-bold text-xs;
+        }
+        .todo-item.completed input[type="text"] {
+            @apply line-through text-gray-500;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 flex items-center justify-center min-h-screen overscroll-none">
+
+    <!-- 
+      MODAL: Aspect Ratio Selection
+    -->
+    <div id="ratio-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div class="bg-gray-800 shadow-2xl rounded-2xl w-full max-w-lg p-6 md:p-8 border border-gray-700">
+            <h2 class="text-2xl md:text-3xl font-bold text-center text-white mb-6">Choose Your Workplane</h2>
+            <p class="text-center text-gray-400 mb-8">Select an aspect ratio for your workspace.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Portrait Options -->
+                <div>
+                    <h3 class="font-semibold text-lg text-white mb-3 text-center">Portrait</h3>
+                    <div class="space-y-3">
+                        <button data-ratio="9:16" class="ratio-button w-full bg-gray-700 hover:bg-blue-600 text-white font-medium py-3 px-5 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 4a2 2 0 012-2h10a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V4zm2 0v12h10V4H5z" clip-rule="evenodd" /></svg>
+                            <span>Phone (9:16)</span>
+                        </button>
+                        <button data-ratio="3:4" class="ratio-button w-full bg-gray-700 hover:bg-blue-600 text-white font-medium py-3 px-5 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2">
+                           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 3a2 2 0 012-2h10a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V3zm2 0v14h10V3H5z" clip-rule="evenodd" /></svg>
+                            <span>Tablet (3:4)</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Landscape Options -->
+                <div>
+                    <h3 class="font-semibold text-lg text-white mb-3 text-center">Landscape</h3>
+                    <div class="space-y-3">
+                        <button data-ratio="16:9" class="ratio-button w-full bg-gray-700 hover:bg-blue-600 text-white font-medium py-3 px-5 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" transform="rotate(90)"><path fill-rule="evenodd" d="M3 4a2 2 0 012-2h10a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V4zm2 0v12h10V4H5z" clip-rule="evenodd" /></svg>
+                            <span>Monitor (16:9)</span>
+                        </button>
+                        <button data-ratio="4:3" class="ratio-button w-full bg-gray-700 hover:bg-blue-600 text-white font-medium py-3 px-5 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" transform="rotate(90)"><path fill-rule="evenodd" d="M3 3a2 2 0 012-2h10a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V3zm2 0v14h10V3H5z" clip-rule="evenodd" /></svg>
+                            <span>Standard (4:3)</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 
+      MODAL: Add Widget
+    -->
+    <div id="widget-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 hidden">
+        <div class="bg-gray-800 shadow-2xl rounded-2xl w-full max-w-sm p-6 border border-gray-700">
+            <h2 class="text-2xl font-bold text-center text-white mb-6">Add a Widget</h2>
+            <form id="add-widget-form" class="space-y-4">
+                <div>
+                    <label for="widget-type" class="block text-sm font-medium text-gray-300 mb-2">Widget Type</label>
+                    <select id="widget-type" name="widget-type" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <optgroup label="General">
+                            <option value="Note">📝 Note</option>
+                            <option value="StickyNote">🟨 Sticky Note</option>
+                            <option value="Clock">⏰ Clock</option>
+                        </optgroup>
+                        <optgroup label="Productivity">
+                            <option value="TodoList">✅ To-Do List</option>
+                            <option value="Pomodoro">🍅 Pomodoro</option>
+                            <option value="Calendar">📅 Calendar</option>
+                            <option value="Countdown">⏳ Countdown</option>
+                        </optgroup>
+                         <optgroup label="Tools & Info">
+                            <option value="Calculator">🧮 Calculator</option>
+                            <option value="Weather">☀️ Weather</option>
+                            <option value="SystemInfo">ℹ️ System Info</option>
+                            <option value="Quote">💬 Quote</option>
+                        </optgroup>
+                        <optgroup label="Media & Fun">
+                            <option value="QuickLink">🔗 Quick Link</option>
+                            <option value="Embed">📺 Embed Content</option>
+                            <option value="Image">🖼️ Image</option>
+                            <option value="DiceRoller">🎲 Dice Roller</option>
+                            <option value="CoinFlip">🪙 Coin Flip</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <div class="flex items-center justify-between pt-2">
+                    <button type="button" id="cancel-add-widget" class="bg-gray-600 hover:bg-gray-500 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200">
+                        Cancel
+                    </button>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg transition-all duration-200">
+                        Add Widget
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 
+      MAIN APP CONTAINER
+    -->
+    <div id="app-container" class="w-screen h-screen flex flex-col p-4 hidden">
+        <!-- ... (Header and User ID remain unchanged) ... -->
+        <header class="w-full max-w-7xl mx-auto flex items-center justify-between pb-4 flex-shrink-0">
+            <div class="flex items-center space-x-3">
+                 <svg class="w-8 h-8 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-1.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25A2.25 2.25 0 015.25 3h13.5A2.25 2.25 0 0121 5.25z" />
+                </svg>
+                <h1 class="text-2xl font-bold text-white">Workplane</h1>
+            </div>
+            <div class="flex items-center space-x-3">
+                <button id="add-widget-button" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg transition-all duration-200 flex items-center space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                    </svg>
+                    <span>Add Widget</span>
+                </button>
+                <button id="reset-ratio-button" class="bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200">
+                    Change Ratio
+                </button>
+            </div>
+        </header>
+
+        <!-- User ID Display (Required by instructions) -->
+        <div class="w-full max-w-7xl mx-auto mb-2">
+            <p class="text-xs text-gray-500 break-all">User ID: <span id="user-id-display">Loading...</span></p>
+        </div>
+
+        <!-- The Workplane Area -->
+        <main class="flex-grow flex items-center justify-center w-full h-full overflow-hidden">
+            <div id="workplane" class="w-full h-full p-4 grid grid-cols-4 gap-4">
+                <!-- Widgets will be injected here by JavaScript -->
+            </div>
+        </main>
+    </div>
+
+
+    <!-- 
+      Firebase and App Logic
+    -->
+    <script type="module">
+        // Firebase Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            signInAnonymously, 
+            signInWithCustomToken, 
+            onAuthStateChanged 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            doc, 
+            getDoc, 
+            setDoc, 
+            onSnapshot, 
+            collection,
+            addDoc,
+            deleteDoc,
+            updateDoc,
+            setLogLevel
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- PWA & App State ---
+        let db, auth, userId, appId;
+        let configRef, widgetsRef;
+        let unsubscribeWidgets; // To stop the listener
+        
+        // State for active widgets
+        let activeIntervals = []; // For clocks, countdowns
+        let activePomodoros = {}; // For pomodoro timers { id: { interval, timeLeft, state } }
+        let activeCalculators = {}; // For calculator states
+        let activeSystemInfoWidgets = {}; // For system info elements
+
+        // --- DOM Elements ---
+        const ratioModal = document.getElementById('ratio-modal');
+        const ratioButtons = document.querySelectorAll('.ratio-button');
+        const appContainer = document.getElementById('app-container');
+        const workplane = document.getElementById('workplane');
+        const userIdDisplay = document.getElementById('user-id-display');
+        const addWidgetButton = document.getElementById('add-widget-button');
+        const resetRatioButton = document.getElementById('reset-ratio-button');
+        const widgetModal = document.getElementById('widget-modal');
+        const widgetTypeSelect = document.getElementById('widget-type');
+        const cancelAddWidget = document.getElementById('cancel-add-widget');
+        const addWidgetForm = document.getElementById('add-widget-form');
+
+        // Helper to escape HTML for security
+        function escapeHTML(str) {
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // --- PWA Setup (Manifest & Service Worker) ---
+        function registerPWA() {
+             if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('/service-worker.js').then(registration => {
+                        console.log('SW registered: ', registration);
+                    }).catch(registrationError => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+                });
+            }
+        }
+        // registerPWA(); // Disabled for this environment
+
+        // --- Firebase Initialization ---
+        
+        function initializeFirebase() {
+            setLogLevel('debug');
+            appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+            const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+            
+            if (Object.keys(firebaseConfig).length === 0) {
+                console.error("Firebase config is missing.");
+                return;
+            }
+
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        userIdDisplay.textContent = userId;
+                        
+                        // Set up Firestore references (FIXED PATHS)
+                        configRef = doc(db, `artifacts/${appId}/users/${userId}/workplane_config/main`);
+                        widgetsRef = collection(db, `artifacts/${appId}/users/${userId}/workplane_widgets`);
+                        
+                        // Load user's config or show modal
+                        await loadUserConfig();
+
+                    } else {
+                        // Sign in anonymously if no token is provided, or use custom token if available
+                        if (initialAuthToken) {
+                            await signInWithCustomToken(auth, initialAuthToken);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    }
+                });
+            } catch (e) {
+                console.error("Firebase Initialization Error:", e);
+            }
+        }
+        
+        async function loadUserConfig() {
+            const docSnap = await getDoc(configRef);
+
+            if (docSnap.exists()) {
+                const config = docSnap.data();
+                console.log("Loaded config:", config);
+                setWorkplaneRatio(config.ratio);
+                // Config exists, show app and hide modal
+                appContainer.classList.remove('hidden');
+                ratioModal.classList.add('hidden');
+                // Start listening for widget changes
+                initWidgetListener();
+                // Add global listeners for dynamic widgets
+                addGlobalListeners();
+            } else {
+                // No config, show the modal
+                appContainer.classList.add('hidden');
+                ratioModal.classList.remove('hidden');
+            }
+        }
+
+        function setWorkplaneRatio(ratio) {
+            let widthClass, heightClass;
+            // Clear existing ratio classes
+            workplane.className = 'w-full h-full p-4 grid grid-cols-4 gap-4';
+
+            // Set new ratio classes (using max-width/height for responsiveness)
+            switch (ratio) {
+                case '9:16':
+                    widthClass = 'max-w-md'; 
+                    heightClass = 'h-[calc(100vh-6rem)] max-h-[700px]'; // Custom max height for visual appeal
+                    workplane.style.aspectRatio = '9 / 16';
+                    break;
+                case '3:4':
+                    widthClass = 'max-w-xl';
+                    heightClass = 'h-[calc(100vh-6rem)] max-h-[800px]';
+                    workplane.style.aspectRatio = '3 / 4';
+                    break;
+                case '4:3':
+                    widthClass = 'max-w-4xl';
+                    heightClass = 'h-full';
+                    workplane.style.aspectRatio = '4 / 3';
+                    break;
+                case '16:9':
+                default:
+                    widthClass = 'max-w-7xl';
+                    heightClass = 'h-full';
+                    workplane.style.aspectRatio = '16 / 9';
+                    break;
+            }
+            workplane.classList.add(widthClass, heightClass);
+        }
+
+        function clearActiveWidgets() {
+            activeIntervals.forEach(clearInterval);
+            activeIntervals = [];
+            
+            Object.values(activePomodoros).forEach(p => clearInterval(p.interval));
+            activePomodoros = {};
+            
+            activeCalculators = {};
+            activeSystemInfoWidgets = {};
+        }
+
+        function initWidgetListener() {
+            // Clear all existing intervals and content before re-rendering
+            clearActiveWidgets();
+            workplane.innerHTML = '';
+            
+            // Set up real-time listener
+            if (unsubscribeWidgets) unsubscribeWidgets(); // Stop previous listener
+
+            unsubscribeWidgets = onSnapshot(widgetsRef, (snapshot) => {
+                const changes = snapshot.docChanges();
+
+                changes.forEach((change) => {
+                    const id = change.doc.id;
+                    const data = change.doc.data();
+                    
+                    if (change.type === "added" || change.type === "modified") {
+                        // Check if the widget already exists in the DOM
+                        let widgetEl = document.getElementById(`widget-${id}`);
+                        
+                        if (!widgetEl) {
+                            // If added (or modified and not in DOM), create it
+                            widgetEl = document.createElement('div');
+                            widgetEl.id = `widget-${id}`;
+                            widgetEl.dataset.type = data.type;
+                            widgetEl.dataset.id = id;
+                            widgetEl.className = 'widget rounded-xl shadow-lg p-3 flex flex-col transition-all duration-300 col-span-1 row-span-1';
+                            
+                            // Render the content and append the widget
+                            renderWidgetContent(widgetEl, id, data);
+                            
+                        } else if (change.type === "modified") {
+                            // If modified, just re-render the content (e.g., in a calendar, this is how tasks or date changes are handled)
+                            renderWidgetContent(widgetEl, id, data);
+                        }
+                    }
+
+                    if (change.type === "removed") {
+                        // Remove from DOM
+                        const el = document.getElementById(`widget-${id}`);
+                        if (el) el.remove();
+                        
+                        // Cleanup active intervals/state
+                        if (data.type === 'Clock' && activeIntervals[id]) {
+                            clearInterval(activeIntervals[id]);
+                            delete activeIntervals[id];
+                        }
+                        if (data.type === 'Countdown' && activeIntervals[id]) {
+                            clearInterval(activeIntervals[id]);
+                            delete activeIntervals[id];
+                        }
+                        if (data.type === 'Pomodoro' && activePomodoros[id]) {
+                            clearInterval(activePomodoros[id].interval);
+                            delete activePomodoros[id];
+                        }
+                        if (data.type === 'Calculator') {
+                            delete activeCalculators[id];
+                        }
+                        if (data.type === 'SystemInfo') {
+                             delete activeSystemInfoWidgets[id];
+                        }
+                    }
+                });
+            }, (error) => {
+                console.error("Widget Listener Error:", error);
+            });
+        }
+
+        function renderWidgetContent(widgetEl, id, data) {
+            let contentHTML = '';
+            let widgetTitle = data.title || data.type;
+
+            // Clear previous content
+            widgetEl.innerHTML = '';
+            
+            // Header (Title and Delete Button)
+            const titleHTML = `<div class="font-bold text-white mb-2 text-sm truncate">${escapeHTML(widgetTitle)}</div>`;
+            widgetEl.insertAdjacentHTML('afterbegin', titleHTML);
+
+            // Determine widget specific content
+            switch (data.type) {
+                case 'Note':
+                    contentHTML = `<textarea data-field="content" class="savable widget-content w-full h-full bg-transparent text-sm focus:outline-none placeholder-gray-500 p-1">${escapeHTML(data.content || '')}</textarea>`;
+                    break;
+                case 'StickyNote':
+                    widgetEl.classList.add('col-span-1', 'row-span-1', 'bg-yellow-600/50', 'text-yellow-100');
+                    contentHTML = `<textarea data-field="content" class="savable widget-content w-full h-full bg-transparent text-sm focus:outline-none placeholder-yellow-300 p-1">${escapeHTML(data.content || '')}</textarea>`;
+                    break;
+                case 'Clock':
+                    widgetEl.classList.add('col-span-1');
+                    contentHTML = `<div id="clock-display-${id}" class="text-3xl font-mono text-center flex items-center justify-center h-full">...</div>`;
+                    if (activeIntervals[id]) clearInterval(activeIntervals[id]);
+                    activeIntervals[id] = setInterval(() => {
+                        const now = new Date();
+                        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                        const el = document.getElementById(`clock-display-${id}`);
+                        if (el) el.textContent = timeStr;
+                    }, 1000);
+                    break;
+                case 'TodoList':
+                    const tasks = data.tasks || [];
+                    contentHTML = `
+                        <div class="flex flex-col h-full overflow-hidden">
+                            <div id="todo-list-${id}" class="todo-list flex-grow space-y-1 overflow-y-auto mb-2 pr-1">
+                                ${tasks.map((task, index) => `
+                                    <div class="todo-item" data-index="${index}" data-task-id="${task.id}" data-completed="${task.completed}">
+                                        <input type="checkbox" data-action="toggle-task" ${task.completed ? 'checked' : ''} class="w-4 h-4 bg-gray-700 border-gray-500 checked:bg-blue-600 focus:ring-blue-500">
+                                        <input type="text" value="${escapeHTML(task.text)}" data-action="edit-task" placeholder="Task description" class="${task.completed ? 'line-through text-gray-500' : 'text-white'}" />
+                                        <button data-action="delete-task" class="delete-task">✕</button>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <form data-action="add-task-form" class="flex">
+                                <input type="text" name="new-task" placeholder="Add a new task..." class="w-full bg-white/10 rounded-l-md px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400" required>
+                                <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white text-sm px-3 py-1 rounded-r-md">Add</button>
+                            </form>
+                        </div>
+                    `;
+                    widgetEl.classList.replace('row-span-1', 'row-span-2');
+                    break;
+                case 'Pomodoro':
+                    const timeLeft = data.timeLeft !== undefined ? data.timeLeft : 1500; // Default 25 min
+                    const state = data.state || 'paused';
+                    const minutes = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+                    const seconds = (timeLeft % 60).toString().padStart(2, '0');
+                    const statusText = state === 'running' ? 'Focusing' : (state === 'paused' ? 'Paused' : 'Finished');
+                    
+                    contentHTML = `
+                        <div class="flex flex-col h-full items-center justify-center p-2 space-y-3">
+                            <div class="text-sm text-gray-400" id="pomodoro-status-${id}">${statusText}</div>
+                            <div class="text-5xl font-mono font-bold" id="pomodoro-display-${id}">${minutes}:${seconds}</div>
+                            <div class="flex space-x-2">
+                                <button data-action="pomodoro-toggle" class="bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 px-4 rounded-lg transition-all">
+                                    ${state === 'running' ? 'Pause' : 'Start'}
+                                </button>
+                                <button data-action="pomodoro-reset" class="bg-gray-600 hover:bg-gray-500 text-white font-medium py-2 px-4 rounded-lg transition-all">
+                                    Reset
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    // Initialize or restart the interval only if it's supposed to be running
+                    activePomodoros[id] = activePomodoros[id] || { interval: null, timeLeft, state };
+                    activePomodoros[id].timeLeft = timeLeft;
+                    activePomodoros[id].state = state;
+
+                    if (state === 'running' && !activePomodoros[id].interval) {
+                        startPomodoro(id);
+                    } else if (state !== 'running' && activePomodoros[id].interval) {
+                        // Clear interval if it's paused or finished
+                        clearInterval(activePomodoros[id].interval);
+                        activePomodoros[id].interval = null;
+                    }
+                    break;
+                case 'Countdown':
+                    const targetDate = data.date || new Date(Date.now() + 86400000).toISOString();
+                    contentHTML = `
+                        <div class="flex flex-col h-full justify-center items-center p-2 space-y-2">
+                            <input type="datetime-local" data-field="date" value="${targetDate.substring(0, 16)}" class="savable text-sm bg-white/10 rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400 w-full text-center" />
+                            <div id="countdown-display-${id}" class="text-3xl font-mono font-bold text-center flex-grow flex items-center justify-center w-full">Loading...</div>
+                        </div>
+                    `;
+                    if (activeIntervals[id]) clearInterval(activeIntervals[id]);
+                    activeIntervals[id] = setInterval(() => updateCountdown(id, targetDate), 1000);
+                    updateCountdown(id, targetDate); // Initial run
+                    break;
+                case 'QuickLink':
+                    const linkUrl = data.url || 'https://www.google.com';
+                    const linkText = data.linkText || 'Quick Link';
+                    contentHTML = `
+                        <div class="flex flex-col h-full justify-center items-center p-2 space-y-2">
+                            <input type="text" data-field="linkText" value="${escapeHTML(linkText)}" placeholder="Link Text" class="savable text-sm bg-white/10 rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400 w-full text-center" />
+                            <input type="url" data-field="url" value="${escapeHTML(linkUrl)}" placeholder="https://" class="savable text-xs bg-white/10 rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400 w-full text-center" />
+                            <a href="${linkUrl}" target="_blank" class="bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 px-4 rounded-lg transition-all text-sm mt-3">Go to Link</a>
+                        </div>
+                    `;
+                    break;
+                case 'Embed':
+                    const embedUrl = data.embedUrl || 'https://www.youtube.com/embed/dQw4w9WgXcQ?controls=0';
+                    contentHTML = `
+                        <div class="flex flex-col h-full p-1">
+                             <input type="url" data-field="embedUrl" value="${escapeHTML(embedUrl)}" placeholder="Embed URL (e.g., YouTube embed)" class="savable text-xs bg-white/10 rounded-md px-2 py-1 mb-1 focus:outline-none focus:ring-1 focus:ring-blue-400 w-full" />
+                            <div class="flex-grow rounded-lg overflow-hidden">
+                                <iframe src="${embedUrl}" class="w-full h-full" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                            </div>
+                        </div>
+                    `;
+                    widgetEl.classList.add('col-span-2', 'row-span-2');
+                    break;
+                case 'Image':
+                    const imageUrl = data.imageUrl || 'https://placehold.co/400x200/4f46e5/ffffff?text=Image+Placeholder';
+                    contentHTML = `
+                         <div class="flex flex-col h-full p-1">
+                             <input type="url" data-field="imageUrl" value="${escapeHTML(imageUrl)}" placeholder="Image URL" class="savable text-xs bg-white/10 rounded-md px-2 py-1 mb-1 focus:outline-none focus:ring-1 focus:ring-blue-400 w-full" />
+                            <div class="flex-grow flex items-center justify-center rounded-lg overflow-hidden">
+                                <img src="${imageUrl}" alt="User provided image" class="object-cover w-full h-full rounded-lg" onerror="this.onerror=null; this.src='https://placehold.co/400x200/ef4444/ffffff?text=Image+Load+Error';" />
+                            </div>
+                        </div>
+                    `;
+                    widgetEl.classList.add('col-span-2', 'row-span-2');
+                    break;
+                case 'DiceRoller':
+                    const lastRoll = data.lastRoll || 'Click to roll!';
+                    contentHTML = `
+                        <div class="flex flex-col h-full items-center justify-center p-2 space-y-3">
+                            <div class="text-4xl font-mono font-bold" id="dice-display-${id}">${escapeHTML(lastRoll)}</div>
+                            <button data-action="roll-dice" class="bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 px-4 rounded-lg transition-all">
+                                Roll d6
+                            </button>
+                        </div>
+                    `;
+                    break;
+                case 'CoinFlip':
+                    const lastFlip = data.lastFlip || 'Click to flip!';
+                    contentHTML = `
+                        <div class="flex flex-col h-full items-center justify-center p-2 space-y-3">
+                            <div class="text-4xl font-mono font-bold" id="coin-display-${id}">${escapeHTML(lastFlip)}</div>
+                            <button data-action="flip-coin" class="bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 px-4 rounded-lg transition-all">
+                                Flip Coin
+                            </button>
+                        </div>
+                    `;
+                    break;
+                case 'Calculator':
+                    widgetEl.classList.replace('row-span-1', 'row-span-2');
+                    // Initialize calculator state for this widget instance
+                    activeCalculators[id] = {
+                        value: data.value || '0',
+                        operator: null,
+                        memory: null,
+                        clearOnNum: true
+                    };
+                    contentHTML = `
+                        <div class="flex flex-col h-full">
+                            <div id="calc-display-${id}" class="calc-display bg-black/30 rounded-md text-right text-2xl font-mono p-2 mb-2 truncate">${escapeHTML(activeCalculators[id].value)}</div>
+                            <div class="grid grid-cols-4 gap-1 flex-grow">
+                                <button class="calc-btn op" data-action="calc-clear">C</button>
+                                <button class="calc-btn op" data-action="calc-op" data-val="/">/</button>
+                                <button class="calc-btn op" data-action="calc-op" data-val="*">x</button>
+                                <button class="calc-btn op" data-action="calc-op" data-val="-">-</button>
+                                
+                                <button class="calc-btn" data-action="calc-num" data-val="7">7</button>
+                                <button class="calc-btn" data-action="calc-num" data-val="8">8</button>
+                                <button class="calc-btn" data-action="calc-num" data-val="9">9</button>
+                                <button class="calc-btn op row-span-2" data-action="calc-op" data-val="+">+</button>
+
+                                <button class="calc-btn" data-action="calc-num" data-val="4">4</button>
+                                <button class="calc-btn" data-action="calc-num" data-val="5">5</button>
+                                <button class="calc-btn" data-action="calc-num" data-val="6">6</button>
+
+                                <button class="calc-btn" data-action="calc-num" data-val="1">1</button>
+                                <button class="calc-btn" data-action="calc-num" data-val="2">2</button>
+                                <button class="calc-btn" data-action="calc-num" data-val="3">3</button>
+                                
+                                <button class="calc-btn col-span-2" data-action="calc-num" data-val="0">0</button>
+                                <button class="calc-btn" data-action="calc-num" data-val=".">.</button>
+                                <button class="calc-btn op" data-action="calc-equals">=</button>
+                            </div>
+                        </div>
+                    `;
+                    break;
+                case 'Calendar':
+                    contentHTML = `
+                        <div class="flex flex-col h-full p-1 text-center">
+                            <div class="font-bold text-lg mb-1" id="calendar-month-year-${id}">...</div>
+                            <div id="calendar-days-${id}" class="grid grid-cols-7 gap-1 text-xs mb-2">
+                                <span class="text-gray-400">Sun</span>
+                                <span class="text-gray-400">Mon</span>
+                                <span class="text-gray-400">Tue</span>
+                                <span class="text-gray-400">Wed</span>
+                                <span class="text-gray-400">Thu</span>
+                                <span class="text-gray-400">Fri</span>
+                                <span class="text-gray-400">Sat</span>
+                            </div>
+                            <div id="calendar-grid-${id}" class="grid grid-cols-7 gap-1 flex-grow">
+                                <!-- Days will be injected here -->
+                            </div>
+                        </div>
+                    `;
+                    widgetEl.classList.replace('row-span-1', 'row-span-2');
+                    renderCalendar(id);
+                    break;
+
+                case 'Weather':
+                    contentHTML = `
+                        <div class="flex flex-col h-full p-1 justify-between">
+                            <div class="flex items-center justify-between mb-1">
+                                <input type="text" data-field="location" value="${escapeHTML(data.location || 'New York')}" placeholder="City..." class="savable text-xs w-full bg-white/10 rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                                <button data-action="refresh-weather" class="ml-1 bg-blue-600/70 hover:bg-blue-500/70 text-xs rounded-md px-2 py-1">↻</button>
+                            </div>
+                            <div class="flex items-center justify-center flex-grow text-center">
+                                <div>
+                                    <div id="weather-icon-${id}" class="text-4xl">...</div>
+                                    <div id="weather-temp-${id}" class="text-2xl font-bold">...</div>
+                                    <div id="weather-desc-${id}" class="text-gray-400 text-sm">Loading...</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    fetchWeather(id, data.location || 'New York');
+                    break;
+
+                case 'Quote':
+                    const quotes = [
+                        "The best way to predict the future is to create it.",
+                        "Strive not to be a success, but rather to be of value.",
+                        "The only way to do great work is to love what you do.",
+                        "Innovation distinguishes between a leader and a follower.",
+                        "Don't count the days, make the days count."
+                    ];
+                    const quote = data.quote || quotes[Math.floor(Math.random() * quotes.length)];
+                    if(!data.quote) saveWidgetData(id, { quote }); // Save initial random quote
+
+                    contentHTML = `
+                        <div class="flex flex-col h-full p-3 justify-between items-center text-center">
+                            <p id="quote-text-${id}" class="italic text-lg text-white/90 mb-4 flex-grow flex items-center justify-center">${escapeHTML(quote)}</p>
+                            <button data-action="new-quote" class="bg-gray-700 hover:bg-gray-600 text-xs text-white font-medium py-1 px-3 rounded-full transition-all duration-200">
+                                Get New Quote
+                            </button>
+                        </div>
+                    `;
+                    break;
+                case 'SystemInfo':
+                    const isOnline = navigator.onLine;
+                    contentHTML = `
+                        <div class="p-2 text-xs space-y-1">
+                            <h3 class="font-semibold text-white mb-1">System Info</h3>
+                            <div><span class="text-gray-400">Viewport:</span> <span id="sysinfo-viewport-${id}">${window.innerWidth} x ${window.innerHeight}</span></div>
+                            <div><span class="text-gray-400">Language:</span> ${navigator.language}</div>
+                            <div><span class="text-gray-400">Platform:</span> ${navigator.platform}</div>
+                            <div><span class="text-gray-400">Online:</span> <span id="sysinfo-online-${id}" class="${isOnline ? 'text-green-400' : 'text-red-400'}">${isOnline}</span></div>
+                        </div>
+                    `;
+                    // Store elements for dynamic updates
+                    activeSystemInfoWidgets[id] = {
+                        viewport: document.getElementById(`sysinfo-viewport-${id}`),
+                        online: document.getElementById(`sysinfo-online-${id}`)
+                    };
+                    break;
+
+                default:
+                    contentHTML = `<div class="text-center text-red-400">Unknown Widget Type: ${data.type}</div>`;
+                    break;
+            }
+
+            // Inject the content
+            const contentContainer = document.createElement('div');
+            contentContainer.className = 'flex-grow overflow-hidden';
+            contentContainer.innerHTML = contentHTML;
+            widgetEl.appendChild(contentContainer);
+            
+            // Add Delete Button
+            const deleteBtn = document.createElement('button');
+            deleteBtn.dataset.action = 'delete-widget';
+            deleteBtn.dataset.id = id;
+            deleteBtn.className = 'absolute top-1 right-1 text-gray-400 hover:text-red-400 p-1 rounded-full opacity-0 hover:opacity-100 transition-opacity text-xs';
+            deleteBtn.innerHTML = '✕';
+            widgetEl.appendChild(deleteBtn);
+            workplane.appendChild(widgetEl);
+        }
+        
+        // --- Widget Helper Functions ---
+
+        function formatTime(seconds) {
+            if (seconds < 0) return "00:00";
+            const min = Math.floor(seconds / 60);
+            const sec = seconds % 60;
+            return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+        }
+        
+        function saveWidgetData(id, data) {
+            if (!db) {
+                console.error("Firestore not initialized.");
+                return Promise.resolve();
+            }
+            const docRef = doc(widgetsRef, id);
+            // Firestore updateDoc requires the document to exist
+            // Using setDoc with merge: true for consistency
+            return setDoc(docRef, data, { merge: true });
+        }
+        
+        function renderCalendar(id) {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth();
+            const date = now.getDate();
+            
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            
+            const monthYearEl = document.getElementById(`calendar-month-year-${id}`);
+            const gridEl = document.getElementById(`calendar-grid-${id}`);
+
+            if (!monthYearEl || !gridEl) return;
+
+            monthYearEl.textContent = `${monthNames[month]} ${year}`;
+            gridEl.innerHTML = '';
+
+            const firstDayOfMonth = new Date(year, month, 1).getDay(); // 0=Sun, 6=Sat
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            // Add leading empty cells
+            for (let i = 0; i < firstDayOfMonth; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'text-center text-gray-700';
+                gridEl.appendChild(emptyCell);
+            }
+
+            // Add day cells
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dayCell = document.createElement('div');
+                dayCell.className = `text-center p-1 rounded-md text-sm cursor-default transition-all`;
+                dayCell.textContent = i;
+
+                if (i === date) {
+                    dayCell.classList.add('bg-blue-600', 'font-bold', 'text-white', 'scale-110');
+                } else {
+                    dayCell.classList.add('hover:bg-white/10');
+                }
+                gridEl.appendChild(dayCell);
+            }
+        }
+        
+        function updateCountdown(id, targetDate) {
+            const targetTime = new Date(targetDate).getTime();
+            const now = new Date().getTime();
+            const distance = targetTime - now;
+            
+            const el = document.getElementById(`countdown-display-${id}`);
+            if (!el) return;
+
+            if (distance < 0) {
+                el.innerHTML = "EXPIRED";
+                return;
+            }
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            const d = days.toString();
+            const h = hours.toString().padStart(2, '0');
+            const m = minutes.toString().padStart(2, '0');
+            const s = seconds.toString().padStart(2, '0');
+            
+            el.innerHTML = `${d}d ${h}h ${m}m ${s}s`;
+        }
+
+        function startPomodoro(id) {
+            const pomodoro = activePomodoros[id];
+            
+            if (pomodoro.interval) clearInterval(pomodoro.interval);
+
+            const timerFunction = () => {
+                pomodoro.timeLeft--;
+                const display = document.getElementById(`pomodoro-display-${id}`);
+                const status = document.getElementById(`pomodoro-status-${id}`);
+
+                if (display) display.textContent = formatTime(pomodoro.timeLeft);
+
+                if (pomodoro.timeLeft <= 0) {
+                    clearInterval(pomodoro.interval);
+                    pomodoro.interval = null;
+                    pomodoro.state = 'finished';
+                    if (status) status.textContent = 'Finished!';
+                    // Reset to default time for the next session
+                    saveWidgetData(id, { state: 'paused', timeLeft: 1500 });
+                    // Maybe play a sound or notification
+                }
+            };
+            
+            pomodoro.interval = setInterval(timerFunction, 1000);
+        }
+
+        async function fetchWeather(id, location) {
+            const displayIcon = document.getElementById(`weather-icon-${id}`);
+            const displayTemp = document.getElementById(`weather-temp-${id}`);
+            const displayDesc = document.getElementById(`weather-desc-${id}`);
+
+            if (!displayIcon) return; // Widget was removed
+
+            displayIcon.textContent = '...';
+            displayTemp.textContent = '...';
+            displayDesc.textContent = 'Loading...';
+
+            try {
+                if (!location) {
+                    displayDesc.textContent = 'Set location';
+                    return;
+                }
+                const res = await fetch(`https://wttr.in/${encodeURIComponent(location)}?format=j1`);
+                if (!res.ok) throw new Error('Weather data not found');
+                
+                const weather = await res.json();
+                const current = weather.current_condition[0];
+                
+                displayTemp.textContent = `${current.temp_F}°F`;
+                displayDesc.textContent = current.weatherDesc[0].value;
+                displayIcon.textContent = getSillyWeatherIcon(current.weatherCode);
+
+            } catch (e) {
+                console.error("Weather fetch error:", e);
+                displayIcon.textContent = '⚠️';
+                displayTemp.textContent = '---';
+                displayDesc.textContent = e.message || 'Error';
+            }
+        }
+
+        function getSillyWeatherIcon(code) {
+            const codeStr = String(code);
+            // Based on wttr.in weather codes
+            if (['113'].includes(codeStr)) return '☀️'; // Sunny
+            if (['116', '119', '122'].includes(codeStr)) return '☁️'; // Cloudy
+            if (['143', '248', '260'].includes(codeStr)) return '🌫️'; // Fog
+            if (['176', '263', '266', '293', '296', '299', '302', '305', '308', '353', '356', '359'].includes(codeStr)) return '🌧️'; // Rain
+            if (['179', '182', '185', '281', '284', '311', '314', '317', '320', '362', '365'].includes(codeStr)) return '🌨️'; // Sleet/Snow
+            if (['200', '386', '389'].includes(codeStr)) return '⛈️'; // Thunderstorm
+            if (['227', '230', '323', '326', '329', '332', '335', '338', '368', '371', '392', '395'].includes(codeStr)) return '❄️'; // Snow
+            return '❓';
+        }
+
+        // --- Global Listeners for Dynamic Widgets ---
+        
+        function updateSystemInfoViewports() {
+            for (const id in activeSystemInfoWidgets) {
+                const el = activeSystemInfoWidgets[id]?.viewport;
+                if (el) {
+                    el.textContent = `${window.innerWidth} x ${window.innerHeight}`;
+                }
+            }
+        }
+
+        function updateSystemInfoOnlineStatus(isOnline) {
+             for (const id in activeSystemInfoWidgets) {
+                const el = activeSystemInfoWidgets[id]?.online;
+                if (el) {
+                    el.textContent = isOnline;
+                    el.classList.toggle('text-green-400', isOnline);
+                    el.classList.toggle('text-red-400', !isOnline);
+                }
+            }
+        }
+
+        function addGlobalListeners() {
+            window.addEventListener('resize', updateSystemInfoViewports);
+            window.addEventListener('online', () => updateSystemInfoOnlineStatus(true));
+            window.addEventListener('offline', () => updateSystemInfoOnlineStatus(false));
+        }
+        
+        function removeGlobalListeners() {
+             window.removeEventListener('resize', updateSystemInfoViewports);
+            window.removeEventListener('online', () => updateSystemInfoOnlineStatus(true));
+            window.removeEventListener('offline', () => updateSystemInfoOnlineStatus(false));
+        }
+
+        // --- Event Listeners ---
+
+        // Ratio Modal Selection
+        ratioButtons.forEach(button => {
+            button.addEventListener('click', async () => {
+                const ratio = button.dataset.ratio;
+                try {
+                    await setDoc(configRef, { ratio });
+                    setWorkplaneRatio(ratio);
+                    ratioModal.classList.add('hidden');
+                    appContainer.classList.remove('hidden');
+                    // Start widget listener after config is set
+                    initWidgetListener();
+                    addGlobalListeners();
+                } catch (e) {
+                    console.error("Error setting workplane ratio:", e);
+                }
+            });
+        });
+        
+        resetRatioButton.addEventListener('click', () => {
+            appContainer.classList.add('hidden');
+            ratioModal.classList.remove('hidden');
+            // Clear intervals and stop listeners
+            clearActiveWidgets();
+            if (unsubscribeWidgets) unsubscribeWidgets();
+            removeGlobalListeners();
+        });
+
+        // Show "Add Widget" Modal
+        addWidgetButton.addEventListener('click', () => {
+            widgetModal.classList.remove('hidden');
+        });
+
+        // Hide "Add Widget" Modal
+        cancelAddWidget.addEventListener('click', () => {
+            widgetModal.classList.add('hidden');
+        });
+
+        // Handle "Add Widget" Form Submission
+        addWidgetForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const type = widgetTypeSelect.value;
+            let newWidgetData = { type, title: type, cols: 1, rows: 1 };
+            
+            // Set default data for specific widgets
+            switch (type) {
+                case 'Note':
+                case 'StickyNote':
+                    newWidgetData.content = '';
+                    break;
+                case 'Countdown':
+                    newWidgetData.title = 'New Event';
+                    newWidgetData.date = new Date(Date.now() + 86400000).toISOString(); // 1 day from now
+                    break;
+                case 'Pomodoro':
+                    newWidgetData.title = 'Pomodoro Timer';
+                    newWidgetData.timeLeft = 1500;
+                    newWidgetData.state = 'paused';
+                    break;
+                case 'Weather':
+                    newWidgetData.location = 'New York';
+                    break;
+                case 'Calculator':
+                    newWidgetData.value = '0';
+                    break;
+            }
+
+            try {
+                await addDoc(widgetsRef, newWidgetData);
+                widgetModal.classList.add('hidden');
+            } catch (e) {
+                console.error("Error adding widget:", e);
+            }
+        });
+
+        // --- Global Event Listener for Widget Interactions ---
+        
+        let debounceTimer; // For textareas
+        
+        // Handle saving for textareas (debounced)
+        workplane.addEventListener('input', (e) => {
+            const target = e.target;
+            const widget = target.closest('.widget');
+            if (!widget || !target.classList.contains('savable')) return;
+            
+            const id = widget.dataset.id;
+            const field = target.dataset.field;
+            let value = target.value;
+            
+            if (target.type === 'datetime-local') {
+                value = new Date(value).toISOString(); // Store as ISO string
+            }
+            
+            // For weather, trigger refresh on location change
+            if (field === 'location') {
+                fetchWeather(id, value);
+            }
+
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                saveWidgetData(id, { [field]: value });
+                console.log(`Saved ${field} for widget ${id}`);
+            }, 500);
+        });
+        
+        // Handle Button Clicks and Form Submissions
+        workplane.addEventListener('click', async (e) => {
+            const target = e.target;
+            const action = target.dataset.action;
+            const widget = target.closest('.widget');
+            
+            if (!widget) return;
+            const id = widget.dataset.id;
+            
+            // --- General ---
+            if (action === 'delete-widget') {
+                try {
+                    if (confirm('Are you sure you want to delete this widget?')) {
+                         await deleteDoc(doc(widgetsRef, id));
+                    }
+                } catch (e) {
+                    console.error("Error deleting widget:", e);
+                }
+            }
+            
+            // --- Quote ---
+            if (action === 'new-quote') {
+                 const quotes = [
+                    "The best way to predict the future is to create it.",
+                    "Strive not to be a success, but rather to be of value.",
+                    "The only way to do great work is to love what you do.",
+                    "Innovation distinguishes between a leader and a follower.",
+                    "Don't count the days, make the days count.",
+                    "The only limit to our realization of tomorrow will be our doubts of today.",
+                    "Success is not final, failure is not fatal: It is the courage to continue that counts.",
+                    "Do what you can, with what you have, where you are."
+                ];
+                const newQuote = quotes[Math.floor(Math.random() * quotes.length)];
+                await saveWidgetData(id, { quote: newQuote });
+            }
+
+            // --- Weather ---
+            if (action === 'refresh-weather') {
+                const location = widget.querySelector('input[data-field="location"]').value;
+                fetchWeather(id, location);
+            }
+            
+            // --- Calculator ---
+            const display = document.getElementById(`calc-display-${id}`);
+            const calcState = activeCalculators[id];
+
+            if (calcState && action.startsWith('calc-')) {
+                if (action === 'calc-num') {
+                    if (calcState.clearOnNum) {
+                        calcState.value = '0';
+                        calcState.clearOnNum = false;
+                    }
+                    let num = target.dataset.val;
+                    if (num === '.' && calcState.value.includes('.')) return;
+                    calcState.value = (calcState.value === '0' && num !== '.') ? num : calcState.value + num;
+                }
+                if (action === 'calc-clear') {
+                    calcState.value = '0';
+                    calcState.operator = null;
+                    calcState.memory = null;
+                    calcState.clearOnNum = true;
+                }
+                if(action === 'calc-op') {
+                    if(calcState.operator && !calcState.clearOnNum) {
+                        // Perform previous operation
+                        try {
+                            calcState.value = String(eval(`${calcState.memory} ${calcState.operator} ${calcState.value}`));
+                        } catch { calcState.value = 'Error'; }
+                    }
+                    calcState.memory = calcState.value;
+                    calcState.operator = target.dataset.val;
+                    calcState.clearOnNum = true;
+                }
+                if(action === 'calc-equals') {
+                    if(!calcState.operator || !calcState.memory || calcState.clearOnNum) return;
+                    try {
+                        calcState.value = String(eval(`${calcState.memory} ${calcState.operator} ${calcState.value}`));
+                    } catch { calcState.value = 'Error'; }
+                    calcState.operator = null;
+                    calcState.memory = null;
+                    calcState.clearOnNum = true;
+                }
+
+                // Update display and save state
+                if (calcState.value.length > 16) calcState.value = parseFloat(calcState.value).toExponential(9); // Handle overflow
+                display.textContent = calcState.value;
+                saveWidgetData(id, { value: calcState.value });
+            }
+
+            // --- Dice Roller ---
+            if (action === 'roll-dice') {
+                const roll = Math.floor(Math.random() * 6) + 1;
+                const display = document.getElementById(`dice-display-${id}`);
+                const resultText = `⚁ ${roll} ⚄`; // Using dice emojis for fun
+                if (display) display.textContent = resultText;
+                await saveWidgetData(id, { lastRoll: resultText });
+            }
+
+            // --- Coin Flip ---
+            if (action === 'flip-coin') {
+                const flip = Math.random() < 0.5 ? 'Heads' : 'Tails';
+                const display = document.getElementById(`coin-display-${id}`);
+                const resultText = flip === 'Heads' ? '👤 Heads' : '💰 Tails';
+                if (display) display.textContent = resultText;
+                await saveWidgetData(id, { lastFlip: resultText });
+            }
+            
+            // --- Pomodoro ---
+            if (action === 'pomodoro-toggle') {
+                const pomodoro = activePomodoros[id];
+                const button = target;
+                const status = document.getElementById(`pomodoro-status-${id}`);
+                
+                if (pomodoro.state === 'running') {
+                    // Pause
+                    clearInterval(pomodoro.interval);
+                    pomodoro.interval = null;
+                    pomodoro.state = 'paused';
+                    button.textContent = 'Start';
+                    if (status) status.textContent = 'Paused';
+                } else {
+                    // Start/Resume
+                    pomodoro.state = 'running';
+                    startPomodoro(id);
+                    button.textContent = 'Pause';
+                    if (status) status.textContent = 'Focusing';
+                }
+                await saveWidgetData(id, { state: pomodoro.state, timeLeft: pomodoro.timeLeft });
+            }
+            
+            if (action === 'pomodoro-reset') {
+                const pomodoro = activePomodoros[id];
+                const button = widget.querySelector('[data-action="pomodoro-toggle"]');
+                const display = document.getElementById(`pomodoro-display-${id}`);
+                const status = document.getElementById(`pomodoro-status-${id}`);
+                
+                clearInterval(pomodoro.interval);
+                pomodoro.interval = null;
+                pomodoro.state = 'paused';
+                pomodoro.timeLeft = 1500; // Reset to 25 minutes
+                
+                button.textContent = 'Start';
+                if (display) display.textContent = formatTime(pomodoro.timeLeft);
+                if (status) status.textContent = 'Ready';
+
+                await saveWidgetData(id, { state: pomodoro.state, timeLeft: pomodoro.timeLeft });
+            }
+
+            // --- Todo List (Toggle/Delete) ---
+            if (action === 'toggle-task' || action === 'delete-task') {
+                const listEl = widget.querySelector(`#todo-list-${id}`);
+                if (!listEl) return;
+                
+                const tasks = Array.from(listEl.children).map(item => ({
+                    text: item.querySelector('input[type="text"]').value,
+                    completed: item.querySelector('input[type="checkbox"]').checked
+                }));
+                
+                let newTasks = [...tasks];
+                const taskIndex = parseInt(target.closest('.todo-item').dataset.index);
+
+                if (action === 'toggle-task') {
+                    newTasks[taskIndex].completed = target.checked;
+                }
+                
+                if (action === 'delete-task') {
+                    newTasks.splice(taskIndex, 1);
+                }
+
+                // Update Firestore
+                await saveWidgetData(id, { tasks: newTasks });
+                // Note: The `onSnapshot` listener will handle the re-render
+            }
+        });
+        
+        // Handle Form Submissions (e.g., Add Task)
+        workplane.addEventListener('submit', async (e) => {
+            const form = e.target;
+            const widget = form.closest('.widget');
+            
+            if (!widget || form.dataset.action !== 'add-task-form') return;
+            
+            e.preventDefault();
+            const id = widget.dataset.id;
+            const input = form.querySelector('input[name="new-task"]');
+            const newTaskText = input.value.trim();
+            
+            if (!newTaskText) return;
+
+            const currentDataSnap = await getDoc(doc(widgetsRef, id));
+            const currentTasks = currentDataSnap.data().tasks || [];
+            
+            const newTasks = [...currentTasks, { text: newTaskText, completed: false, id: Date.now() }];
+            
+            await saveWidgetData(id, { tasks: newTasks });
+            
+            input.value = ''; // Clear the input field
+        });
+
+        // Initialize Firebase on load
+        initializeFirebase();
+
+    </script>
+</body>
+</html>
