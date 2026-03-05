@@ -1,5 +1,7 @@
 # gamester.gg
-gamester.gg is the better version of the "w.i.p." gamester.fun
+gamester.gg is the better version of the now non-public kiosk gaming pwa called gamester.fun
+
+gamester.gg uses the the same base games intended for gamester.fun but adds over 100 more games and apps
 
 ## What is gamester.gg?
 gamester.gg allows low-end devices, like kioks that use older cpu models or lower-end models, to become a "gaming kiosk"
