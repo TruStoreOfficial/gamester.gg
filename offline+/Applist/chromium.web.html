@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ChromeOS Classic Desktop</title>
+    <meta name="theme-color" content="#202124">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <style>
+        :root {
+            --aura-gradient: linear-gradient(135deg, #3c4043 0%, #202124 100%);
+            --dark-gradient: linear-gradient(135deg, #202124 0%, #000000 100%);
+            --blue-gradient: linear-gradient(135deg, #2b32b2 0%, #1488cc 100%);
+            --sunset-gradient: linear-gradient(135deg, #ff512f 0%, #dd2476 100%);
+            
+            --current-bg: var(--aura-gradient);
+            --shelf-bg: rgba(32, 33, 36, 0.85);
+            --window-bg: #f1f3f4;
+            --term-bg: #202124;
+            --term-text: #f1f3f4;
+            --accent: #1a73e8;
+            --header-height: 36px;
+            --shelf-height: 48px;
+            --success: #1e8e3e;
+        }
+
+        * { 
+            box-sizing: border-box; 
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--current-bg);
+            background-attachment: fixed;
+            font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: background 0.5s ease;
+        }
+
+        body.shelf-bottom { flex-direction: column; }
+        body.shelf-left { flex-direction: row; }
+        body.shelf-right { flex-direction: row-reverse; }
+
+        #desktop {
+            flex-grow: 1;
+            position: relative;
+            overflow: hidden;
+            perspective: 1000px;
+        }
+
+        /* --- SHELF --- */
+        #shelf {
+            background: var(--shelf-bg);
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            gap: 8px;
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.05);
+            z-index: 10000;
+            transition: all 0.3s ease;
+        }
+
+        body.shelf-bottom #shelf { height: var(--shelf-height); width: 100%; }
+        body.shelf-left #shelf, body.shelf-right #shelf { width: var(--shelf-height); height: 100%; flex-direction: column; padding: 12px 0; }
+
+        .launcher-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+        .launcher-circle { width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; }
+
+        #taskbar-apps { 
+            display: flex; 
+            align-items: center; 
+            gap: 4px; 
+            flex-grow: 1; 
+        }
+        body.shelf-left #taskbar-apps, body.shelf-right #taskbar-apps { flex-direction: column; }
+
+        .shelf-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.1s, background 0.2s;
+            position: relative;
+        }
+        .shelf-icon:hover { background: rgba(255,255,255,0.1); }
+        .shelf-icon.active::after {
+            content: '';
+            position: absolute;
+            background: #fff;
+            border-radius: 2px;
+        }
+        body.shelf-bottom .shelf-icon.active::after { bottom: 2px; width: 16px; height: 3px; }
+        body.shelf-left .shelf-icon.active::after { right: 2px; height: 16px; width: 3px; }
+        body.shelf-right .shelf-icon.active::after { left: 2px; height: 16px; width: 3px; }
+
+        .icon-img { width: 24px; height: 24px; pointer-events: none; }
+
+        /* --- WINDOWS --- */
+        .window {
+            position: absolute;
+            background: var(--window-bg);
+            border-radius: 8px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-width: 320px;
+            min-height: 200px;
+            border: 1px solid rgba(0,0,0,0.15);
+            transition: opacity 0.2s, transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .window.minimized { opacity: 0; transform: scale(0.7) translateY(100px); pointer-events: none; }
+
+        .title-bar {
+            height: var(--header-height);
+            background: #dadce0;
+            display: flex;
+            align-items: center;
+            padding: 0 0 0 12px;
+            cursor: default;
+            flex-shrink: 0;
+        }
+        .title-bar.dark { background: #202124; color: #fff; }
+        .window-title { flex-grow: 1; font-size: 13px; font-weight: 500; }
+        .window-controls { display: flex; height: 100%; align-items: center; }
+        .win-btn { width: 36px; height: 100%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #5f6368; }
+        .title-bar.dark .win-btn { color: #bdc1c6; }
+        .win-btn:hover { background: rgba(0,0,0,0.1); }
+        .btn-close:hover { background: #d93025 !important; color: white !important; }
+
+        .window-content { flex-grow: 1; position: relative; display: flex; flex-direction: column; overflow: hidden; background: #fff; }
+
+        /* --- TERMINAL (CROSH) --- */
+        .app-terminal { background: var(--term-bg); color: var(--term-text); font-family: 'Consolas', 'Monaco', 'Courier New', monospace; padding: 12px; overflow-y: auto; flex-grow: 1; user-select: text; cursor: text; }
+        .term-history { white-space: pre-wrap; word-break: break-all; }
+        .term-line { margin-bottom: 2px; font-size: 13px; line-height: 1.4; }
+        .crosh-prompt { color: #fbbc04; font-weight: bold; }
+        .prompt-row { display: flex; align-items: center; gap: 8px; }
+        #term-input { background: transparent; border: none; color: inherit; font: inherit; outline: none; flex-grow: 1; padding: 0; }
+
+        /* --- FILES APP --- */
+        .files-layout { display: flex; height: 100%; }
+        .files-sidebar { width: 180px; background: #f1f3f4; border-right: 1px solid #dadce0; padding: 8px 0; }
+        .files-nav-item { padding: 8px 20px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 10px; color: #3c4043; }
+        .files-nav-item:hover { background: #e8eaed; }
+        .files-nav-item.active { background: #e8f0fe; color: #1a73e8; font-weight: 500; }
+        .files-main { flex-grow: 1; padding: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); grid-auto-rows: min-content; gap: 12px; overflow-y: auto; }
+        .file-item { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px; border-radius: 4px; cursor: pointer; }
+        .file-item:hover { background: #f8f9fa; }
+        .file-icon { width: 48px; height: 48px; }
+        .file-name { font-size: 12px; text-align: center; word-break: break-all; color: #3c4043; max-width: 90px; }
+
+        /* --- SETTINGS APP --- */
+        .settings-layout { display: flex; height: 100%; }
+        .settings-sidebar { width: 200px; background: #f8f9fa; border-right: 1px solid #ddd; padding: 12px 0; }
+        .settings-item { padding: 12px 24px; font-size: 13px; cursor: pointer; color: #5f6368; }
+        .settings-item.active { color: var(--accent); background: #e8f0fe; font-weight: 500; border-left: 3px solid var(--accent); }
+        .settings-body { flex-grow: 1; padding: 32px; overflow-y: auto; color: #202124; }
+        .setting-section { margin-bottom: 24px; }
+        .setting-title { font-size: 16px; font-weight: 500; margin-bottom: 16px; }
+        .wallpaper-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 16px; }
+        .wallpaper-thumb { height: 70px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; background-size: cover; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .wallpaper-thumb.selected { border-color: var(--accent); outline: 2px solid white; outline-offset: -4px; }
+        
+        .color-picker { display: flex; gap: 12px; margin-top: 8px; }
+        .color-circle { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
+        .color-circle.selected { border-color: #202124; }
+
+        /* --- SYSTEM TRAY --- */
+        .system-tray { background: rgba(255, 255, 255, 0.1); padding: 4px 14px; border-radius: 20px; display: flex; align-items: center; gap: 12px; color: #fff; font-size: 12px; cursor: pointer; flex-shrink: 0; margin-bottom: 4px; }
+        body.shelf-left .system-tray, body.shelf-right .system-tray { flex-direction: column; padding: 14px 4px; }
+
+        @media (max-width: 600px) {
+            .window { width: 95% !important; height: 85% !important; left: 2.5% !important; top: 2.5% !important; }
+        }
+    </style>
+</head>
+<body class="shelf-bottom">
+
+<div id="desktop"></div>
+
+<div id="shelf">
+    <div class="launcher-btn" title="Launcher"><div class="launcher-circle"></div></div>
+    <div id="taskbar-apps">
+        <div class="shelf-icon" id="shelf-terminal" onclick="openApp('terminal')" title="Terminal">
+            <svg class="icon-img" viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="18" rx="2" fill="#202124"/><path d="M7 9L11 12L7 15" stroke="#fbbc04" stroke-width="2"/><path d="M13 15H17" stroke="#fbbc04" stroke-width="2"/></svg>
+        </div>
+        <div class="shelf-icon" id="shelf-files" onclick="openApp('files')" title="Files">
+            <svg class="icon-img" viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z" fill="#4285f4"/></svg>
+        </div>
+        <div class="shelf-icon" id="shelf-chromium" onclick="openApp('chromium')" title="Chromium">
+            <svg class="icon-img" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#fff"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="#4285f4" opacity=".2"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" fill="#4285f4"/></svg>
+        </div>
+        <div class="shelf-icon" id="shelf-settings" onclick="openApp('settings')" title="Settings">
+            <svg class="icon-img" viewBox="0 0 24 24" fill="#5f6368"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
+        </div>
+    </div>
+    <div class="system-tray">
+        <span id="clock">12:00</span>
+    </div>
+</div>
+
+<script>
+    let zIndexCounter = 100;
+    const desktop = document.getElementById('desktop');
+    const windows = {};
+    let commandHistory = [];
+    let historyIndex = -1;
+    let aliases = {};
+    
+    // Simple Virtual FS
+    let fs = {
+        'MyFiles': {
+            'Downloads': {},
+            'Documents': { 'readme.txt': 'Welcome to ChromeOS!' },
+            'Images': {}
+        }
+    };
+    let currentPath = ['MyFiles', 'Downloads'];
+
+    function openApp(appId) {
+        if (windows[appId]) {
+            const win = windows[appId].element;
+            if (win.classList.contains('minimized')) { win.classList.remove('minimized'); focusWindow(win); }
+            else if (parseInt(win.style.zIndex) < zIndexCounter) { focusWindow(win); }
+            else { win.classList.add('minimized'); }
+            updateShelfState();
+            return;
+        }
+
+        const win = document.createElement('div');
+        win.className = 'window';
+        win.id = `win-${appId}`;
+        const isMobile = window.innerWidth < 600;
+        win.style.width = isMobile ? '95%' : '720px';
+        win.style.height = isMobile ? '80%' : '520px';
+        win.style.left = isMobile ? '2.5%' : `${100 + (Object.keys(windows).length * 30)}px`;
+        win.style.top = isMobile ? '5%' : `${100 + (Object.keys(windows).length * 30)}px`;
+
+        if (appId === 'terminal') {
+            win.innerHTML = getTerminalTemplate();
+            win.querySelector('.title-bar').classList.add('dark');
+            setupTerminal(win);
+        } else if (appId === 'settings') {
+            win.innerHTML = getSettingsTemplate();
+            setupSettings(win);
+        } else if (appId === 'files') {
+            win.innerHTML = getFilesTemplate();
+            setupFiles(win);
+        } else if (appId === 'chromium') {
+            win.innerHTML = getBrowserTemplate();
+        }
+
+        setupWindowControls(win, appId);
+        desktop.appendChild(win);
+        windows[appId] = { element: win };
+        focusWindow(win);
+        updateShelfState();
+    }
+
+    function setupWindowControls(win, appId) {
+        const titleBar = win.querySelector('.title-bar');
+        win.querySelector('.btn-close').onclick = () => { win.remove(); delete windows[appId]; updateShelfState(); };
+        win.querySelector('.btn-min').onclick = (e) => { e.stopPropagation(); win.classList.add('minimized'); updateShelfState(); };
+        win.onmousedown = () => focusWindow(win);
+        
+        let isDragging = false, startX, startY, startLeft, startTop;
+        titleBar.onmousedown = (e) => {
+            if (e.target.closest('.win-btn')) return;
+            isDragging = true;
+            startX = e.clientX; startY = e.clientY;
+            startLeft = parseInt(win.style.left) || 0;
+            startTop = parseInt(win.style.top) || 0;
+        };
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            win.style.left = `${startLeft + (e.clientX - startX)}px`;
+            win.style.top = `${startTop + (e.clientY - startY)}px`;
+        });
+        window.addEventListener('mouseup', () => isDragging = false);
+    }
+
+    function focusWindow(win) { 
+        zIndexCounter++; 
+        win.style.zIndex = zIndexCounter; 
+        const input = win.querySelector('#term-input');
+        if (input) input.focus();
+    }
+
+    function updateShelfState() {
+        document.querySelectorAll('.shelf-icon').forEach(icon => {
+            const id = icon.id.replace('shelf-', '');
+            if (windows[id] && !windows[id].element.classList.contains('minimized')) icon.classList.add('active');
+            else icon.classList.remove('active');
+        });
+    }
+
+    /* --- TERMINAL (CROSH) LOGIC --- */
+    function getTerminalTemplate() {
+        return `
+            <div class="title-bar"><div class="window-title">crosh</div><div class="window-controls"><div class="win-btn btn-min">－</div><div class="win-btn btn-close">✕</div></div></div>
+            <div class="window-content app-terminal">
+                <div class="term-history">Welcome to crosh, the ChromeOS developer shell.<br>Type 'help' for a list of available commands.<br><br></div>
+                <div class="prompt-row"><span class="crosh-prompt">crosh&gt;</span><input type="text" id="term-input" spellcheck="false" autocomplete="off"></div>
+            </div>`;
+    }
+
+    function setupTerminal(win) {
+        const input = win.querySelector('#term-input');
+        const historyContainer = win.querySelector('.term-history');
+        const container = win.querySelector('.app-terminal');
+
+        container.addEventListener('click', () => input.focus());
+
+        input.onkeydown = (e) => {
+            if (e.key === 'Enter') {
+                const fullCmd = input.value.trim();
+                if (!fullCmd) {
+                    const emptyLine = document.createElement('div');
+                    emptyLine.className = 'term-line';
+                    emptyLine.innerHTML = `<span class="crosh-prompt">crosh&gt;</span>`;
+                    historyContainer.appendChild(emptyLine);
+                    input.value = '';
+                    return;
+                }
+
+                const outputLine = document.createElement('div');
+                outputLine.className = 'term-line';
+                outputLine.innerHTML = `<span class="crosh-prompt">crosh&gt;</span> ${input.value}`;
+                historyContainer.appendChild(outputLine);
+
+                commandHistory.push(fullCmd);
+                historyIndex = commandHistory.length;
+
+                const parts = fullCmd.split(' ');
+                let cmd = parts[0].toLowerCase();
+                if (aliases[cmd]) cmd = aliases[cmd];
+                const args = parts.slice(1);
+
+                handleCroshCommand(cmd, args, historyContainer, win);
+                
+                input.value = '';
+                container.scrollTop = container.scrollHeight;
+                
+                // If files app is open, refresh it
+                if (windows['files']) setupFiles(windows['files'].element);
+            } else if (e.key === 'ArrowUp') {
+                if (historyIndex > 0) { historyIndex--; input.value = commandHistory[historyIndex]; }
+                e.preventDefault();
+            } else if (e.key === 'ArrowDown') {
+                if (historyIndex < commandHistory.length - 1) { historyIndex++; input.value = commandHistory[historyIndex]; }
+                else { historyIndex = commandHistory.length; input.value = ''; }
+                e.preventDefault();
+            }
+        };
+    }
+
+    function handleCroshCommand(cmd, args, history, win) {
+        const out = (text, color = 'inherit') => {
+            const line = document.createElement('div');
+            line.className = 'term-line';
+            line.style.color = color;
+            line.innerHTML = text;
+            history.appendChild(line);
+        };
+
+        const getDir = (pathArr) => {
+            let d = fs;
+            for (let p of pathArr) d = d[p];
+            return d;
+        };
+
+        switch(cmd) {
+            case 'help':
+                out('<b>SYSTEM COMMANDS:</b>');
+                out(' help, clear, exit, version, uptime, whoami, date, echo, pwd, ls, storage, free');
+                out('<b>NETWORK:</b>');
+                out(' ping, network_diag, connectivity, ip, tracepath, route, host, netstat');
+                out('<b>FILESYSTEM:</b>');
+                out(' mkdir, touch, rm, ls, pwd');
+                out('<b>EXTRAS & FUN:</b>');
+                out(' cowsay, catsay, weather, fortune, matrix, timer [sec], dice, color [hex], alias');
+                break;
+            case 'catsay':
+                const catMsg = args.length ? args.join(' ') : 'Meow!';
+                out(` &nbsp;<b>${catMsg}</b><br> &nbsp;\\<br> &nbsp; \\<br> &nbsp; &nbsp; &nbsp;/\\_/\\<br> &nbsp; &nbsp; ( o.o )<br> &nbsp; &nbsp; &nbsp;&gt; ^ &lt;`);
+                break;
+            case 'cowsay':
+                const cowMsg = args.join(' ') || 'Moo';
+                out(`&lt; ${cowMsg} &gt;<br>  \\   ^__^<br>   \\  (oo)\\_______<br>      (__)\\       )\\/\\<br>          ||----w |<br>          ||     ||`);
+                break;
+            case 'mkdir':
+                if (args[0]) {
+                    getDir(currentPath)[args[0]] = {};
+                    out(`Created directory: ${args[0]}`);
+                }
+                break;
+            case 'touch':
+                if (args[0]) {
+                    getDir(currentPath)[args[0]] = 'File content';
+                    out(`Created file: ${args[0]}`);
+                }
+                break;
+            case 'rm':
+                if (args[0] && getDir(currentPath)[args[0]]) {
+                    delete getDir(currentPath)[args[0]];
+                    out(`Deleted: ${args[0]}`);
+                }
+                break;
+            case 'ls':
+                const files = Object.keys(getDir(currentPath));
+                out(files.join('  ') || '[Empty]');
+                break;
+            case 'pwd': out('/' + currentPath.join('/')); break;
+            case 'ip': out('inet 192.168.1.105/24 brd 192.168.1.255'); break;
+            case 'uptime': out('up 15 hours, 42 minutes'); break;
+            case 'clear': history.innerHTML = ''; break;
+            case 'exit': win.querySelector('.btn-close').click(); break;
+            case 'echo': out(args.join(' ')); break;
+            case 'date': out(new Date().toString()); break;
+            case 'whoami': out('chronos'); break;
+            case 'version': out('Google ChromeOS: 121.0.6167.159 (Official Build)'); break;
+            case 'matrix': out('<span style="color:#00ff00">01011001 01101111 01110101 00100000 01100110 01101111 01110101 01101110 01100100</span>'); break;
+            case 'fortune': out(["Success is inevitable.", "Expect a surprise.", "Follow the white rabbit."].sort(() => .5-Math.random())[0]); break;
+            case 'dice': out(`You rolled a ${Math.floor(Math.random() * 6) + 1}!`); break;
+            default: out(`Unknown command: '${cmd}'`);
+        }
+    }
+
+    /* --- FILES APP LOGIC --- */
+    function getFilesTemplate() {
+        return `
+            <div class="title-bar"><div class="window-title">Files</div><div class="window-controls"><div class="win-btn btn-min">－</div><div class="win-btn btn-close">✕</div></div></div>
+            <div class="window-content files-layout">
+                <div class="files-sidebar">
+                    <div class="files-nav-item" onclick="navigateFiles('Downloads', this)"><svg width="18" height="18" viewBox="0 0 24 24" fill="#5f6368"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg> Downloads</div>
+                    <div class="files-nav-item" onclick="navigateFiles('Documents', this)"><svg width="18" height="18" viewBox="0 0 24 24" fill="#5f6368"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg> Documents</div>
+                    <div class="files-nav-item" onclick="navigateFiles('Images', this)"><svg width="18" height="18" viewBox="0 0 24 24" fill="#5f6368"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg> Images</div>
+                </div>
+                <div class="files-main" id="files-list"></div>
+            </div>`;
+    }
+
+    function setupFiles(win) {
+        const downloadsItem = win.querySelector('.files-nav-item');
+        if (downloadsItem) navigateFiles(currentPath[1], downloadsItem);
+    }
+
+    function navigateFiles(folderName, el) {
+        currentPath = ['MyFiles', folderName];
+        const sidebar = el.closest('.files-sidebar');
+        sidebar.querySelectorAll('.files-nav-item').forEach(i => i.classList.remove('active'));
+        el.classList.add('active');
+
+        renderFileList();
+    }
+
+    function renderFileList() {
+        const list = document.getElementById('files-list');
+        if (!list) return;
+        list.innerHTML = '';
+        
+        let d = fs;
+        for (let p of currentPath) d = d[p];
+
+        Object.entries(d).forEach(([name, content]) => {
+            const isDir = typeof content === 'object';
+            const item = document.createElement('div');
+            item.className = 'file-item';
+            item.innerHTML = `
+                <svg class="file-icon" viewBox="0 0 24 24">
+                    <path d="${isDir ? 'M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z' : 'M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6z'}" fill="${isDir ? '#5f6368' : '#1a73e8'}"/>
+                </svg>
+                <div class="file-name">${name}</div>
+            `;
+            list.appendChild(item);
+        });
+    }
+
+    /* --- SETTINGS LOGIC --- */
+    function getSettingsTemplate() {
+        return `
+            <div class="title-bar"><div class="window-title">Settings</div><div class="window-controls"><div class="win-btn btn-min">－</div><div class="win-btn btn-close">✕</div></div></div>
+            <div class="window-content settings-layout">
+                <div class="settings-sidebar">
+                    <div class="settings-item active" onclick="switchSettingsTab(this, 'appearance')">Appearance</div>
+                    <div class="settings-item" onclick="switchSettingsTab(this, 'about')">About ChromeOS</div>
+                </div>
+                <div class="settings-body" id="settings-content">
+                    <div class="setting-section">
+                        <div class="setting-title">Wallpaper</div>
+                        <div class="wallpaper-grid">
+                            <div class="wallpaper-thumb" data-theme="aura" style="background:var(--aura-gradient)"></div>
+                            <div class="wallpaper-thumb" data-theme="dark" style="background:var(--dark-gradient)"></div>
+                            <div class="wallpaper-thumb" data-theme="blue" style="background:var(--blue-gradient)"></div>
+                            <div class="wallpaper-thumb" data-theme="sunset" style="background:var(--sunset-gradient)"></div>
+                        </div>
+                    </div>
+                    <div class="setting-section">
+                        <div class="setting-title">Accent Color</div>
+                        <div class="color-picker">
+                            <div class="color-circle" style="background:#1a73e8" onclick="setAccent('#1a73e8')"></div>
+                            <div class="color-circle" style="background:#d93025" onclick="setAccent('#d93025')"></div>
+                            <div class="color-circle" style="background:#1e8e3e" onclick="setAccent('#1e8e3e')"></div>
+                            <div class="color-circle" style="background:#fbbc04" onclick="setAccent('#fbbc04')"></div>
+                        </div>
+                    </div>
+                    <div class="setting-section">
+                        <div class="setting-title">Shelf Position</div>
+                        <select onchange="setShelfPos(this.value)" style="padding:6px; border-radius:4px; border:1px solid #ddd;">
+                            <option value="bottom">Bottom</option>
+                            <option value="left">Left</option>
+                            <option value="right">Right</option>
+                        </select>
+                    </div>
+                </div>
+            </div>`;
+    }
+
+    function setupSettings(win) {
+        win.querySelectorAll('.wallpaper-thumb').forEach(t => {
+            t.onclick = () => {
+                document.body.style.background = `var(--${t.dataset.theme}-gradient)`;
+                win.querySelectorAll('.wallpaper-thumb').forEach(x => x.classList.remove('selected'));
+                t.classList.add('selected');
+            };
+        });
+    }
+
+    function switchSettingsTab(el, tab) {
+        const body = el.closest('.settings-layout').querySelector('#settings-content');
+        if (tab === 'about') {
+            body.innerHTML = `<div class="setting-title">Google ChromeOS</div><p>Version 121.0.6167.159 (Official Build)</p><p>Simulated Dev Environment</p>`;
+        } else {
+            openApp('settings');
+        }
+    }
+
+    function setAccent(color) { document.documentElement.style.setProperty('--accent', color); }
+    function setShelfPos(pos) { document.body.className = `shelf-${pos}`; }
+    function getBrowserTemplate() { return `<div class="title-bar"><div class="window-title">Chromium</div><div class="window-controls"><div class="win-btn btn-min">－</div><div class="win-btn btn-close">✕</div></div></div><div class="window-content"><iframe src="https://www.google.com/search?igu=1" style="width:100%;height:100%;border:none;"></iframe></div>`; }
+
+    function updateClock() {
+        document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    }
+    
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    window.onload = () => {
+        openApp('terminal');
+        window.focus();
+    };
+</script>
+</body>
+</html>
