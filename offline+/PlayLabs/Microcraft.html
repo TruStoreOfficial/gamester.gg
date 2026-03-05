@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MICROCRAFT // PlayLabs</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #1a1a2e; font-family: 'Courier New', monospace; }
+        #hud {
+            position: absolute; top: 20px; left: 20px; color: #00ff41;
+            text-shadow: 2px 2px #000; pointer-events: none; z-index: 10;
+        }
+        #controls-ui {
+            position: absolute; bottom: 20px; left: 20px; color: #fff;
+            background: rgba(0,0,0,0.7); padding: 15px; border-left: 4px solid #00ff41;
+            font-size: 13px; line-height: 1.6; pointer-events: none;
+        }
+        #branding { position: absolute; bottom: 20px; right: 20px; color: #00ff41; font-weight: bold; }
+        .stat { font-size: 1.2em; margin-bottom: 5px; }
+        #shop-ui {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: #050505; border: 3px solid #00ff41; padding: 30px;
+            color: #00ff41; display: none; z-index: 100; text-align: center; width: 320px;
+        }
+        button { 
+            background: #002200; color: #00ff41; border: 1px solid #00ff41; 
+            padding: 12px; width: 100%; margin: 8px 0; cursor: pointer; font-family: inherit; font-weight: bold;
+        }
+        button:hover { background: #00ff41; color: #000; }
+        #crosshair { position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; border: 1px solid #fff; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+    </style>
+</head>
+<body>
+
+    <div id="hud">
+        <div class="stat">Made by PLAYLABS</div>
+        <div class="stat">WORLD MASS: <span id="blockCount">0</span> / <span id="maxLimit">3000</span></div>
+        <div class="stat">MATTER: <span id="matter">0</span></div>
+    </div>
+
+    <div id="controls-ui">
+        <b>COMMANDS:</b><br>
+        [W,A,S,D]  - Move Character<br>
+        [CLICK]    - Mine Block (+5 Matter)<br>
+        [SHIFT+CLK]- Place Block (-1 Matter)<br>
+        [E / CLICK GOLD BLOCK] - Open Void Shop<br>
+        [R]        - Reset View
+    </div>
+
+    <div id="shop-ui">
+        <h2 style="margin-top:0">VOID TERMINAL</h2>
+        <p>RESOURCES: <span id="shopMatter">0</span> m</p>
+        <button onclick="buyLimit()">EXPAND STABILITY (+500 Mass) | COST: 100 MATTER</button>
+        <button onclick="buyMobRepel()">PURGE GLITCHES (Kill Mobs) | COST:  50 MATTER</button>
+        <button onclick="toggleShop()">EXIT TERMINAL [E]</button>
+    </div>
+
+    <div id="branding">PlayLabs.</div>
+    <div id="crosshair"></div>
+
+    <script type="importmap">
+        { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+
+        let scene, camera, renderer, raycaster, player;
+        let blocks = [], mobs = [];
+        let matter = 0, blockLimit = 3000, isShopOpen = false;
+        const keys = {};
+        const MAP_SIZE = 30;
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87ceeb); // Light Blue sky
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            resetCamera();
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            raycaster = new THREE.Raycaster();
+
+            // --- BRIGHT LIGHTING ---
+            const ambient = new THREE.AmbientLight(0xffffff, 0.8); // Strong base light
+            scene.add(ambient);
+            
+            const sun = new THREE.DirectionalLight(0xffffff, 1.2);
+            sun.position.set(20, 50, 20);
+            scene.add(sun);
+
+            // Player
+            player = new THREE.Mesh(
+                new THREE.BoxGeometry(0.6, 1.2, 0.6),
+                new THREE.MeshStandardMaterial({ color: 0xff4444 })
+            );
+            player.position.set(0, 15, 0);
+            scene.add(player);
+
+            generateWorld();
+            spawnMobs(8);
+
+            window.addEventListener('keydown', e => {
+                keys[e.code] = true;
+                if(e.code === 'KeyE') toggleShop();
+                if(e.code === 'KeyR') resetCamera();
+            });
+            window.addEventListener('keyup', e => keys[e.code] = false);
+            window.addEventListener('mousedown', onMouseClick);
+            
+            animate();
+        }
+
+        function resetCamera() {
+            camera.position.set(25, 25, 25);
+            camera.lookAt(0, 0, 0);
+        }
+
+        function generateWorld() {
+            const offset = MAP_SIZE / 2;
+            for (let x = 0; x < MAP_SIZE; x++) {
+                for (let z = 0; z < MAP_SIZE; z++) {
+                    const h = (x === 15 && z === 15) ? 3 : Math.floor(Math.random() * 2) + 1;
+                    for (let y = 0; y < h; y++) {
+                        let color = 0x555555;
+                        if (y === h - 1) color = (x === 15 && z === 15) ? 0xffd700 : 0x2e7d32;
+                        createBlock(x - offset, y, z - offset, color, (x === 15 && z === 15));
+                    }
+                }
+            }
+        }
+
+        function createBlock(x, y, z, color, isShop = false) {
+            if (blocks.length >= blockLimit) return;
+            const b = new THREE.Mesh(
+                new THREE.BoxGeometry(1, 1, 1),
+                new THREE.MeshStandardMaterial({ color: color })
+            );
+            b.position.set(x, y, z);
+            if(isShop) b.userData.isShop = true;
+            scene.add(b);
+            blocks.push(b);
+            updateUI();
+        }
+
+        function onMouseClick(e) {
+            if(isShopOpen) return;
+            const mouse = new THREE.Vector2((e.clientX/window.innerWidth)*2-1, -(e.clientY/window.innerHeight)*2+1);
+            raycaster.setFromCamera(mouse, camera);
+            const hits = raycaster.intersectObjects(blocks);
+
+            if (hits.length > 0) {
+                const obj = hits[0].object;
+                if (e.shiftKey) {
+                    if (matter > 0) {
+                        const n = hits[0].face.normal;
+                        createBlock(obj.position.x + n.x, obj.position.y + n.y, obj.position.z + n.z, 0x888888);
+                        matter--;
+                    }
+                } else {
+                    if(obj.userData.isShop) { toggleShop(); return; }
+                    scene.remove(obj);
+                    blocks = blocks.filter(b => b !== obj);
+                    matter += 5;
+                }
+                updateUI();
+            }
+        }
+
+        function spawnMobs(count) {
+            for(let i=0; i<count; i++) {
+                const mob = new THREE.Mesh(new THREE.BoxGeometry(0.8,0.8,0.8), new THREE.MeshStandardMaterial({color:0x000000}));
+                mob.position.set(Math.random()*20-10, 10, Math.random()*20-10);
+                scene.add(mob);
+                mobs.push(mob);
+            }
+        }
+
+        window.toggleShop = function() {
+            isShopOpen = !isShopOpen;
+            document.getElementById('shop-ui').style.display = isShopOpen ? 'block' : 'none';
+            document.getElementById('shopMatter').innerText = matter;
+        };
+
+        window.buyLimit = function() {
+            if(matter >= 100) { matter -= 100; blockLimit += 500; updateUI(); toggleShop(); }
+        };
+
+        window.buyMobRepel = function() {
+            if(matter >= 50) { 
+                matter -= 50; 
+                mobs.forEach(m => scene.remove(m));
+                mobs = [];
+                updateUI(); toggleShop(); 
+                spawnMobs(3); // A few respawn later
+            }
+        };
+
+        function updateUI() {
+            document.getElementById('blockCount').innerText = blocks.length;
+            document.getElementById('maxLimit').innerText = blockLimit;
+            document.getElementById('matter').innerText = matter;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if(isShopOpen) return;
+
+            const speed = 0.15;
+            const moveVec = new THREE.Vector3(0, 0, 0);
+            if (keys['KeyW']) { moveVec.x -= speed; moveVec.z -= speed; }
+            if (keys['KeyS']) { moveVec.x += speed; moveVec.z += speed; }
+            if (keys['KeyA']) { moveVec.x -= speed; moveVec.z += speed; }
+            if (keys['KeyD']) { moveVec.x += speed; moveVec.z -= speed; }
+            player.position.add(moveVec);
+
+            let onGround = false;
+            for (let b of blocks) {
+                if (Math.abs(player.position.x - b.position.x) < 0.7 && Math.abs(player.position.z - b.position.z) < 0.7) {
+                    if (player.position.y - b.position.y > 0 && player.position.y - b.position.y < 1.2) {
+                        player.position.y = b.position.y + 1.1;
+                        onGround = true; break;
+                    }
+                }
+            }
+            if(!onGround) player.position.y -= 0.15;
+            if(player.position.y < -15) player.position.set(0, 10, 0);
+
+            mobs.forEach(m => {
+                m.position.x += (player.position.x - m.position.x) * 0.005;
+                m.position.z += (player.position.z - m.position.z) * 0.005;
+                // Simple mob gravity
+                m.position.y -= 0.05;
+                for(let b of blocks) {
+                    if(Math.abs(m.position.x - b.position.x) < 0.6 && Math.abs(m.position.z - b.position.z) < 0.6) {
+                        if(m.position.y < b.position.y + 1) m.position.y = b.position.y + 0.9;
+                    }
+                }
+            });
+
+            renderer.render(scene, camera);
+        }
+        init();
+    </script>
+</body>
+</html>
