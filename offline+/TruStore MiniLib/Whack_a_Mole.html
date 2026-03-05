@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whack-a-Mole</title>
+    <style>
+        /* CSS Variables for colors */
+        :root {
+            --bg-color: #f0f0f0;
+            --text-color: #333;
+            --score-color: #555;
+            --game-container-bg: #8B4513; /* Brown dirt color */
+            --hole-bg: #5C3317; /* Darker brown for holes */
+            --hole-border: #36200D;
+            --mole-bg: #4CAF50; /* Green for mole */
+            --mole-shadow: rgba(0, 0, 0, 0.3);
+            --mole-border: #388E3C;
+            --button-bg: #4CAF50;
+            --button-hover-bg: #45a049;
+        }
+
+        body.dark-mode {
+            --bg-color: #1a1a2e;
+            --text-color: #e0e0e0;
+            --score-color: #b0b0b0;
+            --game-container-bg: #32324f; /* Darker, muted brown */
+            --hole-bg: #4a4a6e; /* Darker hole color */
+            --hole-border: #2c2c4d;
+            --mole-bg: #607d8b; /* Muted mole color */
+            --mole-shadow: rgba(255, 255, 255, 0.2);
+            --mole-border: #455a64;
+            --button-bg: #533483;
+            --button-hover-bg: #4a2d75;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif; /* Using Inter font */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        h1 {
+            color: var(--text-color);
+        }
+
+        .score-board {
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            color: var(--score-color);
+        }
+
+        .game-container {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 10px;
+            background-color: var(--game-container-bg);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s ease;
+        }
+
+        .hole {
+            width: 100px;
+            height: 100px;
+            background-color: var(--hole-bg);
+            border-radius: 50%;
+            overflow: hidden;
+            position: relative;
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 30 30"><path fill="%23FF0000" d="M15 0L0 30h30L15 0z"/></svg>') 15 15, auto; /* Hammer cursor */
+            border: 2px solid var(--hole-border);
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .mole {
+            width: 80%;
+            height: 80%;
+            background-color: var(--mole-bg);
+            border-radius: 50%;
+            position: absolute;
+            bottom: -100%; /* Start hidden below the hole */
+            left: 10%;
+            transition: bottom 0.2s ease-out, background-color 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+            box-shadow: inset 0 0 10px var(--mole-shadow);
+            border: 2px solid var(--mole-border);
+        }
+
+        .mole.up {
+            bottom: 0; /* Move up to be visible */
+        }
+
+        .button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 1.2em;
+            background-color: var(--button-bg);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            display: inline-block; /* For better spacing with multiple buttons */
+            margin-right: 10px;
+        }
+
+        .button:last-child {
+            margin-right: 0;
+        }
+
+        .button:hover {
+            background-color: var(--button-hover-bg);
+        }
+
+        /* Dark Mode Toggle Specific Styling */
+        .dark-mode-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: var(--text-color);
+            transition: color 0.3s ease;
+        }
+
+        .dark-mode-toggle:hover {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <button id="darkModeToggle" class="dark-mode-toggle">💡</button> <!-- Lightbulb icon for toggle -->
+    <h1>Whack-a-Mole!</h1>
+    <div class="score-board">
+        Score: <span id="score">0</span>
+    </div>
+    <div class="game-container">
+        <!-- Holes are dynamically generated or listed as before -->
+        <div class="hole" id="hole-0"><div class="mole"></div></div>
+        <div class="hole" id="hole-1"><div class="mole"></div></div>
+        <div class="hole" id="hole-2"><div class="mole"></div></div>
+        <div class="hole" id="hole-3"><div class="mole"></div></div>
+        <div class="hole" id="hole-4"><div class="mole"></div></div>
+        <div class="hole" id="hole-5"><div class="mole"></div></div>
+        <div class="hole" id="hole-6"><div class="mole"></div></div>
+        <div class="hole" id="hole-7"><div class="mole"></div></div>
+        <div class="hole" id="hole-8"><div class="mole"></div></div>
+    </div>
+    <button class="button" id="startButton">Start Game</button>
+
+    <script>
+        const holes = document.querySelectorAll('.hole');
+        const scoreDisplay = document.getElementById('score');
+        const startButton = document.getElementById('startButton');
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const body = document.body;
+
+        let score = 0;
+        let lastHole;
+        let timeUp = false;
+        let gameDuration = 15000; // 15 seconds
+
+        // Function to set dark mode preference
+        function setDarkMode(isDark) {
+            if (isDark) {
+                body.classList.add('dark-mode');
+                darkModeToggle.textContent = '💡'; // Lightbulb for dark mode
+                localStorage.setItem('darkMode', 'enabled');
+            } else {
+                body.classList.remove('dark-mode');
+                darkModeToggle.textContent = '💡'; // Lightbulb for light mode
+                localStorage.setItem('darkMode', 'disabled');
+            }
+        }
+
+        // Check for saved dark mode preference on load
+        document.addEventListener('DOMContentLoaded', () => {
+            if (localStorage.getItem('darkMode') === 'enabled') {
+                setDarkMode(true);
+            } else {
+                setDarkMode(false); // Ensure consistent initial state
+            }
+        });
+
+        // Toggle dark mode on button click
+        darkModeToggle.addEventListener('click', () => {
+            setDarkMode(!body.classList.contains('dark-mode'));
+        });
+
+        function randomTime(min, max) {
+            return Math.round(Math.random() * (max - min) + min);
+        }
+
+        function randomHole(holes) {
+            const idx = Math.floor(Math.random() * holes.length);
+            const hole = holes[idx];
+            if (hole === lastHole) {
+                return randomHole(holes);
+            }
+            lastHole = hole;
+            return hole;
+        }
+
+        function peep() {
+            const time = randomTime(500, 1500); // Mole stays up for 0.5 to 1.5 seconds
+            const hole = randomHole(holes);
+            const mole = hole.querySelector('.mole');
+
+            mole.classList.add('up');
+
+            setTimeout(() => {
+                mole.classList.remove('up');
+                if (!timeUp) {
+                    peep();
+                }
+            }, time);
+        }
+
+        function startGame() {
+            score = 0;
+            scoreDisplay.textContent = score;
+            timeUp = false;
+            startButton.disabled = true;
+            peep();
+            setTimeout(() => {
+                timeUp = true;
+                startButton.disabled = false;
+                // Using a custom modal-like message instead of alert
+                const gameOverMessage = document.createElement('div');
+                gameOverMessage.style.cssText = `
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background-color: var(--game-container-bg);
+                    color: var(--text-color);
+                    padding: 20px;
+                    border-radius: 10px;
+                    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+                    z-index: 1000;
+                    text-align: center;
+                    border: 2px solid var(--hole-border);
+                `;
+                gameOverMessage.innerHTML = `
+                    <h2>Game Over!</h2>
+                    <p>Your final score is: ${score}</p>
+                    <button class="button" onclick="this.parentNode.remove()">Close</button>
+                `;
+                document.body.appendChild(gameOverMessage);
+            }, gameDuration);
+        }
+
+        function whack(e) {
+            // Check if it's a real click and mole is up. Also, prevent double counting
+            if (!e.isTrusted || !this.querySelector('.mole').classList.contains('up')) return;
+            score++;
+            // Immediately remove 'up' class to make mole disappear
+            this.querySelector('.mole').classList.remove('up');
+            scoreDisplay.textContent = score;
+        }
+
+        holes.forEach(hole => hole.addEventListener('click', whack));
+        startButton.addEventListener('click', startGame);
+    </script>
+</body>
+</html>

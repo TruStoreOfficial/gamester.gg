@@ -1,0 +1,1797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roll Em' All</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom CSS for a clean base and font-family */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom button styling for a more appealing look */
+        .btn-primary {
+            background-image: linear-gradient(to right, #4F46E5, #6366F1);
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        .btn-primary:hover {
+            background-image: linear-gradient(to right, #6366F1, #4F46E5);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+
+        /* Custom button styling for shop buttons */
+        .btn-shop {
+            background-color: #374151; /* Darker gray */
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        .btn-shop:hover {
+            background-color: #4B5563; /* Slightly lighter on hover */
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .btn-shop:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+
+        /* Styling for checklist items */
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            padding: 4px 0;
+            font-size: 0.95rem;
+            color: #d1d5db; /* Light gray text */
+        }
+        .checklist-item.collected {
+            color: #86efac; /* Green for collected */
+            font-weight: 600;
+        }
+        .pack-section {
+            margin-bottom: 16px;
+            background-color: #2d3748; /* Darker blue-gray */
+            padding: 12px;
+            border-radius: 8px;
+        }
+        .pack-section h3 {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #a78bfa; /* Purple-ish */
+            margin-bottom: 8px;
+            cursor: pointer; /* Indicate it's clickable */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .pack-content {
+            display: none; /* Hidden by default */
+            padding-top: 8px;
+            border-top: 1px solid #4a5568;
+            margin-top: 8px;
+        }
+        .pack-content.active {
+            display: block; /* Shown when active */
+        }
+
+        /* Styles for summon animation */
+        .summon-animation-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            position: relative;
+            width: 300px;
+            height: 300px;
+        }
+
+        .crate-base {
+            background-color: #8B4513; /* SaddleBrown */
+            border: 4px solid #654321; /* Darker brown */
+            width: 200px;
+            height: 150px;
+            border-radius: 10px;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .crate-lid {
+            background-color: #A0522D; /* Sienna */
+            border: 4px solid #654321;
+            width: 220px;
+            height: 60px;
+            border-radius: 10px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transform-origin: bottom center;
+            transition: transform 0.7s ease-out;
+            z-index: 2; /* On top of base initially */
+        }
+
+        .crate-lid.open {
+            transform: translate(-50%, -150%) rotateX(90deg); /* Opens upwards */
+        }
+
+        .summon-char-display {
+            position: absolute;
+            opacity: 0;
+            transform: translateY(20px) scale(0.8);
+            transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+            z-index: 0; /* Behind lid initially */
+        }
+
+        .summon-char-display.visible {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            z-index: 3; /* On top after lid opens */
+        }
+
+        .summon-glow {
+            animation: pulse-glow 1.5s infinite alternate;
+        }
+
+        @keyframes pulse-glow {
+            from { box-shadow: 0 0 10px rgba(79, 70, 229, 0.3); }
+            to { box-shadow: 0 0 25px rgba(79, 70, 229, 0.8); }
+        }
+
+        /* Confetti Keyframes */
+        @keyframes fall {
+            from { transform: translateY(0) rotate(0deg); }
+            to { transform: translateY(100vh) rotate(720deg); } /* Fall and rotate */
+        }
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+
+        /* Styling for the credits modal */
+        #creditsModal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none; /* Controlled by JS, not hidden class */
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        #creditsContent {
+            background-color: #2d3748;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 600px;
+            color: #d1d5db;
+            text-align: left;
+            position: relative;
+            max-height: 80vh; /* Limit height for scrollability */
+            overflow-y: auto; /* Enable scrolling */
+        }
+
+        #creditsContent h2 {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #a78bfa;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        #creditsContent h3 {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #a78bfa;
+            margin-top: 15px;
+            margin-bottom: 5px;
+        }
+
+        #creditsContent p {
+            margin-bottom: 5px;
+        }
+
+        #creditsCloseBtn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 2rem;
+            color: #d1d5db;
+            cursor: pointer;
+            line-height: 1;
+        }
+        #creditsCloseBtn:hover {
+            color: #a78bfa;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="bg-gray-800 p-6 rounded-xl shadow-lg w-full max-w-4xl">
+        <h1 class="text-4xl font-bold mb-2 text-indigo-400">✨🎲 Roll Em' All 🎲✨</h1>
+        <p class="text-gray-400 mb-6">Rated E for Everyone ✔️</p>
+
+        <div id="stats" class="bg-gray-700 p-4 rounded-lg mb-6 text-lg font-semibold flex flex-col sm:flex-row justify-around items-center space-y-2 sm:space-y-0">
+            <span>💰 Coins: <span id="coins" class="text-yellow-400">0</span></span>
+            <span>⚡ Coin/sec: <span id="rate" class="text-green-400">1</span></span>
+            <span>🍀 Lucky: 1 / <span id="luck" class="text-red-400">100</span></span>
+            <span id="tierStatus">Current Tier: I</span>
+        </div>
+
+        <div id="tier1SummonButtons" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+            <button onclick="summonPack(classicPack, getPackCost('Classic'), 'Classic')" class="btn-primary py-3 px-6 rounded-lg font-bold text-white shadow-md border-2 border-indigo-600">Summon Classic (<span class="pack-cost">100</span>)</button>
+            <button onclick="summonPack(waifuPack, getPackCost('Waifu'), 'Waifu')" class="btn-primary py-3 px-6 rounded-lg font-bold text-white shadow-md border-2 border-indigo-600">Summon Waifu (<span class="pack-cost">2500</span>)</button>
+            <button onclick="summonPack(retroPack, getPackCost('8-Bit Retro'), '8-Bit Retro')" class="btn-primary py-3 px-6 rounded-lg font-bold text-white shadow-md border-2 border-indigo-600">Summon 8-Bit Retro (<span class="pack-cost">1000</span>)</button>
+            <button onclick="summonPack(waifu2ndEditionPack, getPackCost('Waifu: 2nd Edition'), 'Waifu: 2nd Edition')" class="btn-primary py-3 px-6 rounded-lg font-bold text-white shadow-md border-2 border-indigo-600">Summon Waifu: 2nd Ed (<span class="pack-cost">5000</span>)</button>
+            <button onclick="summonPack(codePack, getPackCost('Code Language'), 'Code Language')" class="btn-primary py-3 px-6 rounded-lg font-bold text-white shadow-md border-2 border-indigo-600">Summon Code Language (<span class="pack-cost">10000</span>)</button>
+            <button onclick="summonPack(darknessPack, getPackCost('Darkness'), 'Darkness')" class="btn-primary py-3 px-6 rounded-lg font-bold text-white shadow-md border-2 border-indigo-600">Summon Darkness (<span class="pack-cost">7500</span>)</button>
+        </div>
+
+        <div id="tier2SummonButtons" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6 hidden">
+            <button onclick="summonPack(decayingDungeonPack, getPackCost('Decaying Dungeon'), 'Decaying Dungeon')" class="btn-primary py-3 px-6 rounded-lg font-bold text-white shadow-md border-2 border-indigo-600">Summon Decaying Dungeon (<span class="pack-cost">15000</span>)</button>
+            <button onclick="summonPack(foggyForestPack, getPackCost('Foggy Forest'), 'Foggy Forest')" class="btn-primary py-3 px-6 rounded-lg font-bold text-white shadow-md border-2 border-indigo-600">Summon Foggy Forest (<span class="pack-cost">18000</span>)</button>
+            <button onclick="summonPack(intoTheSkyPack, getPackCost('Into The Sky'), 'Into The Sky')" class="btn-primary py-3 px-6 rounded-lg font-bold text-white shadow-md border-2 border-indigo-600">Summon Into The Sky (<span class="pack-cost">20000</span>)</button>
+            <button onclick="summonPack(landOfDreamsPack, getPackCost('Land of Dreams'), 'Land of Dreams')" class="btn-primary py-3 px-6 rounded-lg font-bold text-white shadow-md border-2 border-indigo-600">Summon Land of Dreams (<span class="pack-cost">22000</span>)</button>
+            <button onclick="summonPack(skyWaifusPack, getPackCost('Sky Waifus'), 'Sky Waifus')" class="btn-primary py-3 px-6 rounded-lg font-bold text-white shadow-md border-2 border-indigo-600">Summon Sky Waifus (<span class="pack-cost">28000</span>)</button>
+            <button onclick="summonPack(foodPack, getPackCost('Food'), 'Food')" class="btn-primary py-3 px-6 rounded-lg font-bold text-white shadow-md border-2 border-indigo-600">Summon Food (<span class="pack-cost">24000</span>)</button>
+        </div>
+
+        <div id="tierUnlockArea" class="mb-6 flex justify-center hidden">
+            <button onclick="unlockTierII()" class="btn-primary py-3 px-6 rounded-lg font-bold text-white shadow-md border-2 border-green-600">
+                Unlock Tier II Workbench (Requires All Tier I & 20,000💰)
+            </button>
+        </div>
+
+        <div id="specialCharacterUnlockArea" class="mb-6 flex flex-wrap justify-center gap-4">
+            <button id="waifuOfMoonUnlockBtn" onclick="unlockWaifuOfMoon()" class="btn-primary py-3 px-6 rounded-lg font-bold text-white shadow-md border-2 border-purple-600 hidden">
+                Claim Waifu of Moon (Collect All Waifu Pack Chars) 🌙
+            </button>
+            <button id="waifuOfWaterUnlockBtn" onclick="unlockWaifuOfWater()" class="btn-primary py-3 px-6 rounded-lg font-bold text-white shadow-md border-2 border-blue-600 hidden">
+                Claim Waifu of Water (Collect All Tier I Chars) 💧
+            </button>
+            <button id="chefWaifuUnlockBtn" onclick="unlockChefWaifu()" class="btn-primary py-3 px-6 rounded-lg font-bold text-white shadow-md border-2 border-orange-600 hidden">
+                Claim Chef Waifu (Collect All Tier II Chars) 👩‍🍳
+            </button>
+            <button id="richWaifuUnlockBtn" onclick="unlockRichWaifu()" class="btn-primary py-3 px-6 rounded-lg font-bold text-white shadow-md border-2 border-yellow-600 hidden">
+                Claim Rich Waifu (Have 20,000+ Coins) 🤑
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-4 mb-6">
+            <button onclick="viewCollection()" class="btn-shop py-3 px-6 rounded-lg font-bold text-gray-200 shadow-md border-2 border-gray-600">View Rolled Characters</button>
+            <button onclick="sellRandom()" class="btn-shop py-3 px-6 rounded-lg font-bold text-gray-200 shadow-md border-2 border-gray-600">Sell Random Character (+50)</button>
+            <button onclick="openShop()" class="btn-shop py-3 px-6 rounded-lg font-bold text-gray-200 shadow-md border-2 border-gray-600">Shop / Upgrades</button>
+            <button onclick="openRedeemCode()" class="btn-shop py-3 px-6 rounded-lg font-bold text-gray-200 shadow-md border-2 border-gray-600">🔑 Redeem Code</button>
+            <button onclick="togglePackChecklists()" class="btn-shop py-3 px-6 rounded-lg font-bold text-gray-200 shadow-md border-2 border-gray-600">📋 View Pack Checklists</button>
+            <button onclick="openAutoRollControls()" class="btn-shop py-3 px-6 rounded-lg font-bold text-gray-200 shadow-md border-2 border-gray-600">⚙️ Auto Roll</button>
+        </div>
+
+        <div id="log" class="bg-gray-700 border border-gray-600 p-4 rounded-lg mt-6 text-left text-gray-300 whitespace-pre-wrap min-h-[80px] flex items-center justify-center">
+            📝 Welcome to Roll Em' All!
+        </div>
+        <div id="shopArea" class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+        <div id="redeemCodeArea" class="mt-4 hidden p-4 bg-gray-700 rounded-lg">
+            <input type="text" id="codeInput" class="w-full p-2 rounded bg-gray-800 text-gray-200 border border-gray-600 mb-2" placeholder="Enter code here...">
+            <button onclick="redeemCode()" class="btn-primary py-2 px-4 rounded-lg font-bold text-white shadow-md w-full">Redeem</button>
+        </div>
+
+        <div id="packChecklistsArea" class="mt-4 hidden">
+            </div>
+
+        <div id="autoRollArea" class="mt-4 hidden p-4 bg-gray-700 rounded-lg">
+            <h3 class="text-xl font-bold text-indigo-300 mb-4">Auto Roll Settings</h3>
+            <div class="mb-4">
+                <label for="autoRollPackSelect" class="block text-gray-300 text-sm font-bold mb-2">Select Pack for Auto Roll:</label>
+                <select id="autoRollPackSelect" class="w-full p-2 rounded bg-gray-800 text-gray-200 border border-gray-600" onchange="selectAutoRollPack(this.value)">
+                    <option value="">-- Select a Pack --</option>
+                </select>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-2">
+                <button id="toggleAutoRollBtn" onclick="toggleAutoRoll()" class="btn-primary py-2 px-4 rounded-lg font-bold text-white shadow-md flex-grow">Start Auto Roll</button>
+            </div>
+            <p id="autoRollStatus" class="text-center text-gray-400 mt-2">Auto Roll: Inactive</p>
+        </div>
+    </div>
+
+    <div id="summonAnimationArea" class="fixed inset-0 bg-gray-900 bg-opacity-90 flex items-center justify-center z-50 hidden">
+        </div>
+
+    <div class="text-center text-gray-500 text-sm mt-8">
+        <p>Copyright (C) 2019-2025 GameCo. LLC. | All Rights Reserved</p>
+        <p>Copyright (C) 2024-2025 Lunar Studios | All Rights Reserved</p>
+        <button onclick="showCredits()" class="btn-shop py-1 px-3 rounded-md font-bold text-gray-200 shadow-sm border border-gray-700 mt-2">[Credits]</button>
+    </div>
+
+    <div id="creditsModal" style="display: none;"> <div id="creditsContent">
+            <button id="creditsCloseBtn" onclick="hideCredits()">×</button>
+            <h2>Game Credits</h2>
+            <h3>-Lunar Studios-</h3>
+            <p>Idea: Lunar Studios</p>
+            <p>Content Management: Lunar Studios</p>
+            <p>Character Design: Lunar Studios</p>
+
+            <h3>-GameCo. LLC.-</h3>
+            <p>Game Design: GameCo. LLC.</p>
+            <p>Local Save System: GameCo. LLC.</p>
+            <p>Coding: GameCo. LLC.</p>
+            <p>Publication: GameCo. LLC.</p>
+
+            <h3>-Safer Internet Project-</h3>
+            <p>S.I.P. Verification Information:</p>
+            <p>~ approval date: 7/7/2025</p>
+            <p>~ expiration date: 7/7/2026</p>
+            <p>~ class: E5</p>
+            <p>~ rating: E for Everyone*</p>
+            <p class="text-xs text-gray-400">*character names may be suggestive, Parent Guidance is recommended (PG)</p>
+
+            <h3>-Notes-</h3>
+            <p>Made with ❤️love by GameCo. LLC. and Lunar Studios!</p>
+        </div>
+    </div>
+
+    <script>
+        let coins = 0;
+        let coinRate = 1;
+        let luckChance = 100;
+        let collection = []; // Stores collected characters
+        let redeemedCodes = new Set(); // To store redeemed codes
+
+        // Game state variables for animations and auto-roll
+        let skipAnimation = false;
+        let autoRollAvailable = false; // Becomes true after purchase
+        let autoRollActive = false;
+        let autoRollInterval = null;
+        let currentAutoRollPack = null;
+        let autoRollDelay = 3000; // Default 3 seconds between auto rolls (can be upgraded)
+
+        // Tier System variables
+        let currentTier = 1;
+        const TIER_II_UNLOCK_COST = 20000;
+        const RICH_WAIFU_UNLOCK_COINS = 20000; // New constant for Rich Waifu unlock
+
+        // Playtime tracking for Waifu of Gaming unlock
+        let cumulativePlayTime = 0; // in milliseconds
+        let lastActiveTime = Date.now(); // Timestamp of the last time the game was active
+
+        // Special Characters
+        const waifuOfSun = { id: 'special_sun', name: "Waifu of Sun", rarity: "Special", icon: "☀️", exclusive: true };
+        const waifuOfMoon = { id: 'special_moon', name: "Waifu of Moon", rarity: "Legendary Special", icon: "🌙", exclusive: true };
+        const waifuOfGaming = {
+            id: 'special_gaming',
+            name: "Waifu of Gaming",
+            rarity: "Ultra Legendary Special",
+            icon: "🎮", // Emoji icon for display in collection
+            asciiArt: `
+  _    _  ___  _  _  _  _   _
+ | |  | ||_  || || || || \\ | |
+ | |/\\| |  / /| || || ||  \\| |
+ | /  \\ | / / | || || || |\\  |
+ | |  | |/ /_ | || || || | \\ |
+ |_|  |_|____||_||_||_||_|  \\|
+            `, // ASCII art for special animation
+            exclusive: true
+        };
+        // New Special Characters
+        const waifuOfWater = { id: 'special_water', name: "Waifu of Water", rarity: "Legendary Special", icon: "💧", exclusive: true };
+        const chefWaifu = { id: 'special_chef', name: "Chef Waifu", rarity: "Mythic Special", icon: "👩‍🍳", exclusive: true };
+        const sadWaifu = { id: 'special_sad', name: "Sad Waifu", rarity: "Rare Special", icon: "😢", exclusive: true };
+        const richWaifu = { id: 'special_rich', name: "Rich Waifu", rarity: "Wealthy Special", icon: "🤑", exclusive: true };
+
+
+        // Packs - All expanded to 25 characters!
+        const classicPack = [
+            { id: 'c1', name: "Male #3", rarity: "Common", icon: "🧔" }, { id: 'c2', name: "Female #7", rarity: "Rare", icon: "👩" }, { id: 'c3', name: "Male #21", rarity: "Legendary", icon: "🦸‍♂️" },
+            { id: 'c4', name: "Female #12", rarity: "Epic", icon: "🧝‍♀️" }, { id: 'c5', name: "Female #19", rarity: "Uncommon", icon: "🧙‍♀️" }, { id: 'c6', name: "Builder Bob", rarity: "Common", icon: "👷" },
+            { id: 'c7', name: "Chef Chloe", rarity: "Uncommon", icon: "🍳" }, { id: 'c8', name: "Astronaut Alex", rarity: "Rare", icon: "🚀" }, { id: 'c9', name: "Dancer Daisy", rarity: "Epic", icon: "💃" },
+            { id: 'c10', name: "Musician Mike", rarity: "Legendary", icon: "🎸" }, { id: 'c11', name: "Gardener Grace", rarity: "Common", icon: "👩‍🌾" }, { id: 'c12', name: "Detective Dan", rarity: "Uncommon", icon: "🕵️" },
+            { id: 'c13', name: "Artist Amy", rarity: "Rare", icon: "🎨" }, { id: 'c14', name: "Scientist Sam", rarity: "Epic", icon: "🔬" }, { id: 'c15', name: "Pilot Pat", rarity: "Legendary", icon: "✈️" },
+            { id: 'c16', name: "Doctor Dave", rarity: "Common", icon: "👨‍⚕️" }, { id: 'c17', name: "Teacher Tina", rarity: "Uncommon", icon: "👩‍🏫" }, { id: 'c18', name: "Firefighter Fred", rarity: "Rare", icon: "🚒" },
+            { id: 'c19', name: "Police Officer Pam", rarity: "Epic", icon: "🚓" }, { id: 'c20', name: "Athlete Aaron", rarity: "Legendary", icon: "🏆" }, { id: 'c21', name: "Librarian Leo", rarity: "Common", icon: "📚" },
+            { id: 'c22', name: "Baker Bella", rarity: "Uncommon", icon: "🥐" }, { id: 'c23', name: "Fisherman Finn", rarity: "Rare", icon: "🎣" }, { id: 'c24', name: "Photographer Phoebe", rarity: "Epic", icon: "📸" },
+            { id: 'c25', name: "Explorer Ethan", rarity: "Legendary", icon: "🗺️" }
+        ];
+
+        const waifuPack = [
+            { id: 'w1', name: "Sakura Blade #7", rarity: "Idol", icon: "🌸" }, { id: 'w2', name: "Neko Mage #12", rarity: "Mystic", icon: "😺" }, { id: 'w3', name: "Crimson Archer #5", rarity: "Ultra Rare", icon: "🏹" },
+            { id: 'w4', name: "Cyber Idol #8", rarity: "Idol", icon: "🎧" }, { id: 'w5', name: "Moonlit Sniper #3", rarity: "Ultra Rare", icon: "🌕" }, { id: 'w6', name: "Star Seeker #1", rarity: "Mystic", icon: "✨" },
+            { id: 'w7', name: "Dream Weaver #9", rarity: "Idol", icon: "💫" }, { id: 'w8', name: "Shadow Dancer #4", rarity: "Ultra Rare", icon: "🌑" }, { id: 'w9', name: "Aqua Siren #10", rarity: "Mystic", icon: "🧜‍♀️" },
+            { id: 'w10', name: "Solar Priestess #6", rarity: "Idol", icon: "☀️" }, { id: 'w11', name: "Forest Nymph Elara", rarity: "Mystic", icon: "🌳" }, { id: 'w12', name: "Desert Rose Zara", rarity: "Ultra Rare", icon: "🏜️" },
+            { id: 'w13', name: "Winter Blossom Yuki", rarity: "Idol", icon: "❄️" }, { id: 'w14', name: "Volcano Spirit Kila", rarity: "Mystic", icon: "🌋" }, { id: 'w15', name: "Thunder Empress Rai", rarity: "Ultra Rare", icon: "⚡" },
+            { id: 'w16', name: "Oceanic Protector Mia", rarity: "Idol", icon: "🌊" }, { id: 'w17', name: "Celestial Sorceress Nova", rarity: "Mystic", icon: "🌌" }, { id: 'w18', name: "Steel Heart Anya", rarity: "Ultra Rare", icon: "⚔️" },
+            { id: 'w19', name: "Glimmering Pixie Luna", rarity: "Idol", icon: "🧚" }, { id: 'w20', name: "Ancient Guardian Gaia", rarity: "Mystic", icon: "🌿" }, { id: 'w21', name: "Sakura's Echo Hana", rarity: "Idol", icon: "🌸" },
+            { id: 'w22', name: "Starfall Seraphine", rarity: "Ultra Rare", icon: "🌠" }, { id: 'w23', name: "Echoing Spirit Aria", rarity: "Mystic", icon: "🎶" }, { id: 'w24', name: "Blazing Phoenix Ember", rarity: "Idol", icon: "🔥" },
+            { id: 'w25', name: "Silent Whisper Lilith", rarity: "Ultra Rare", icon: "🤫" }
+        ];
+
+        const retroPack = [
+            { id: 'r1', name: "Pixel Knight #1", rarity: "8-Bit", icon: "🧱" }, { id: 'r2', name: "Retro Wizard #2", rarity: "8-Bit", icon: "🧙" }, { id: 'r3', name: "Bit Princess #3", rarity: "8-Bit", icon: "👸" },
+            { id: 'r4', name: "Glitch Ninja #4", rarity: "Rare", icon: "🥷" }, { id: 'r5', name: "Block Archer #5", rarity: "Ultra Rare", icon: "🏹" }, { id: 'r6', name: "Cartridge Crusader #6", rarity: "8-Bit", icon: "🎮" },
+            { id: 'r7', name: "Arcade Ace #7", rarity: "Rare", icon: "👾" }, { id: 'r8', name: "Synth Samurai #8", rarity: "Ultra Rare", icon: "⚔️" }, { id: 'r9', name: "Dot Matrix Diva #9", rarity: "8-Bit", icon: "🎵" },
+            { id: 'r10', name: "Circuit Sorcerer #10", rarity: "Rare", icon: "⚡" }, { id: 'r11', name: "Vaporwave Visionary", rarity: "8-Bit", icon: "🌅" }, { id: 'r12', name: "CRT Champion", rarity: "Rare", icon: "📺" },
+            { id: 'r13', name: "Floppy Disk Fighter", rarity: "Ultra Rare", icon: "💾" }, { id: 'r14', name: "Modem Master", rarity: "8-Bit", icon: "📞" }, { id: 'r15', name: "Cassette Commander", rarity: "Rare", icon: "📼" },
+            { id: 'r16', name: "Joystick Juggernaut", rarity: "8-Bit", icon: "🕹️" }, { id: 'r17', name: "Dial-up Defender", rarity: "Ultra Rare", icon: "☎️" }, { id: 'r18', name: "Neon Nomad", rarity: "Rare", icon: "🌈" },
+            { id: 'r19', name: "Command Line Kid", rarity: "8-Bit", icon: "💻" }, { id: 'r20', name: "Keyboard King", rarity: "Ultra Rare", icon: "⌨️" }, { id: 'r21', name: "Data Streamer", rarity: "8-Bit", icon: "📶" },
+            { id: 'r22', name: "Analog Avenger", rarity: "Rare", icon: "📻" }, { id: 'r23', name: "Digital Diva", rarity: "Ultra Rare", icon: "🎤" }, { id: 'r24', name: "Retro Robot", rarity: "8-Bit", icon: "🤖" },
+            { id: 'r25', name: "Soundwave Sage", rarity: "Rare", icon: "🔊" }
+        ];
+
+        const waifu2ndEditionPack = [
+            { id: 'w2e1', name: "Blossom Spirit #1", rarity: "Legendary", icon: "🌸" }, { id: 'w2e2', name: "Cosmic Wanderer #2", rarity: "Mythic", icon: "🌌" }, { id: 'w2e3', name: "Crystal Oracle #3", rarity: "Epic", icon: "🔮" },
+            { id: 'w2e4', name: "Frostbite Fairy #4", rarity: "Rare", icon: "❄️" }, { id: 'w2e5', name: "Golden Guardian #5", rarity: "Ultra Rare", icon: "🌟" }, { id: 'w2e6', name: "Jade Empress #6", rarity: "Legendary", icon: "👑" },
+            { id: 'w2e7', name: "Oceanic Dreamer #7", rarity: "Mythic", icon: "🌊" }, { id: 'w2e8', name: "Phoenix Flame #8", rarity: "Epic", icon: "🔥" }, { id: 'w2e9', name: "Silver Sentinel #9", rarity: "Rare", icon: "🛡️" },
+            { id: 'w2e10', name: "Twilight Sorceress #10", rarity: "Ultra Rare", icon: "🌙" }, { id: 'w2e11', name: "Solar Bloom Seraphina", rarity: "Legendary", icon: "☀️" }, { id: 'w2e12', name: "Star Gazer Elara", rarity: "Mythic", icon: "🔭" },
+            { id: 'w2e13', name: "Emerald Enchantress Lyra", rarity: "Epic", icon: "💎" }, { id: 'w2e14', name: "Whisperwind Maiden Zephyr", rarity: "Rare", icon: "🍃" }, { id: 'w2e15', name: "Crimson Eclipse Lilith", rarity: "Ultra Rare", icon: "🩸" },
+            { id: 'w2e16', name: "Spirit Weaver Celeste", rarity: "Legendary", icon: "🕸️" }, { id: 'w2e17', name: "Astral Alchemist Aella", rarity: "Mythic", icon: "🧪" }, { id: 'w2e18', name: "Iron Maiden Valeriana", rarity: "Epic", icon: "🔗" },
+            { id: 'w2e19', name: "Lunar Lumina Selene", rarity: "Rare", icon: "🌕" }, { id: 'w2e20', name: "Abyssal Echo Kaito", rarity: "Ultra Rare", icon: "🌊" }, { id: 'w2e21', name: "Dream Sculptor Morwen", rarity: "Legendary", icon: "💭" },
+            { id: 'w2e22', name: "Void Whisperer Nyx", rarity: "Mythic", icon: "⚫" }, { id: 'w2e23', name: "Garnet Gemini Ruby", rarity: "Epic", icon: "♊" }, { id: 'w2e24', name: "Mystic Melody Anya", rarity: "Rare", icon: "🎼" },
+            { id: 'w2e25', name: "Silent Shadow Kage", rarity: "Ultra Rare", icon: "👤" }
+        ];
+
+        const codePack = [
+            { id: 'cp1', name: "Python", rarity: "High-Level", icon: "🐍" }, { id: 'cp2', name: "JavaScript", rarity: "Web", icon: "📜" }, { id: 'cp3', name: "Java", rarity: "Enterprise", icon: "☕" },
+            { id: 'cp4', name: "C++", rarity: "System", icon: "⚙️" }, { id: 'cp5', name: "C#", rarity: "Microsoft", icon: "#️⃣" }, { id: 'cp6', name: "Ruby", rarity: "Scripting", icon: "💎" },
+            { id: 'cp7', name: "Swift", rarity: "iOS", icon: "🍎" }, { id: 'cp8', name: "Go", rarity: "Concurrent", icon: "🐹" }, { id: 'cp9', name: "Rust", rarity: "Memory-Safe", icon: "🦀" },
+            { id: 'cp10', name: "PHP", rarity: "Server-Side", icon: "🐘" }, { id: 'cp11', name: "Kotlin", rarity: "JVM", icon: "✨" }, { id: 'cp12', name: "TypeScript", rarity: "Typed JS", icon: "💙" },
+            { id: 'cp13', name: "HTML", rarity: "Markup", icon: "🌐" }, { id: 'cp14', name: "CSS", rarity: "Styling", icon: "💅" }, { id: 'cp15', name: "SQL", rarity: "Database", icon: "🗄️" },
+            { id: 'cp16', name: "Shell Script", rarity: "Command Line", icon: "🐚" }, { id: 'cp17', name: "Assembly", rarity: "Low-Level", icon: "👾" }, { id: 'cp18', name: "R", rarity: "Statistical", icon: "📊" },
+            { id: 'cp19', name: "Perl", rarity: "Legacy", icon: "🐪" }, { id: 'cp20', name: "Haskell", rarity: "Functional", icon: "λ" }, { id: 'cp21', name: "Lua", rarity: "Scriptable", icon: "🌙" },
+            { id: 'cp22', name: "Scala", rarity: "Functional JVM", icon: "🎭" }, { id: 'cp23', name: "Dart", rarity: "Flutter", icon: "🎯" }, { id: 'cp24', name: "Objective-C", rarity: "Old iOS", icon: "📱" },
+            { id: 'cp25', name: "MATLAB", rarity: "Numerical", icon: "📈" }
+        ];
+
+        const darknessPack = [
+            { id: 'd1', name: "Shadow Wanderer", rarity: "Mysterious", icon: "👤" }, { id: 'd2', name: "Eclipse Knight", rarity: "Abyssal", icon: "🌑" }, { id: 'd3', name: "Void Lurker", rarity: "Ethereal", icon: "🌫️" },
+            { id: 'd4', name: "Night Wraith", rarity: "Phantom", icon: "👻" }, { id: 'd5', name: "Grim Reaper", rarity: "Deathly", icon: "💀" }, { id: 'd6', name: "Whispering Echo", rarity: "Haunted", icon: "🗣️" },
+            { id: 'd7', name: "Obsidian Golem", rarity: "Stone", icon: "🪨" }, { id: 'd8', name: "Fallen Star", rarity: "Cosmic", icon: "🌠" }, { id: 'd9', name: "Crimson Moon", rarity: "Bloody", icon: "🩸" },
+            { id: 'd10', name: "Silent Hunter", rarity: "Stealthy", icon: "🐾" }, { id: 'd11', name: "Grave Warden", rarity: "Deathly", icon: "⚰️" }, { id: 'd12', name: "Lost Soul", rarity: "Phantom", icon: "🌀" },
+            { id: 'd13', name: "Dark Alchemist", rarity: "Mysterious", icon: "⚗️" }, { id: 'd14', name: "Nether Hound", rarity: "Abyssal", icon: "🐕‍🦺" }, { id: 'd15', name: "Cursed Relic", rarity: "Ethereal", icon: "🏺" },
+            { id: 'd16', name: "Nightshade Stalker", rarity: "Phantom", icon: "🌿" }, { id: 'd17', name: "Wailing Banshee", rarity: "Haunted", icon: "😱" }, { id: 'd18', name: "Stone Sentinel", rarity: "Stone", icon: "🗿" },
+            { id: 'd19', name: "Astral Specter", rarity: "Cosmic", icon: "✨" }, { id: 'd20', name: "Bloodseeker", rarity: "Bloody", icon: "💉" }, { id: 'd21', name: "Creeping Shadow", rarity: "Stealthy", icon: "👤" },
+            { id: 'd22', name: "Doom Prophet", rarity: "Mysterious", icon: "🔮" }, { id: 'd23', name: "Void Beast", rarity: "Abyssal", icon: "👾" }, { id: 'd24', name: "Spectral Archer", rarity: "Phantom", icon: "🏹" },
+            { id: 'd25', name: "Soul Collector", rarity: "Deathly", icon: "🪝" }
+        ];
+
+        // --- NEW TIER II PACKS ---
+        const decayingDungeonPack = [
+            { id: 'dd1', name: "Goblin Grunt", rarity: "Common", icon: "👹" }, { id: 'dd2', name: "Slime Blob", rarity: "Common", icon: "🦠" }, { id: 'dd3', name: "Skeleton Warrior", rarity: "Uncommon", icon: "💀" },
+            { id: 'dd4', name: "Giant Spider", rarity: "Uncommon", icon: "🕷️" }, { id: 'dd5', name: "Mimic Chest", rarity: "Rare", icon: "📦" }, { id: 'dd6', name: "Ogre Brute", rarity: "Rare", icon: "🦍" },
+            { id: 'dd7', name: "Dark Bat", rarity: "Common", icon: "🦇" }, { id: 'dd8', name: "Zombie Guard", rarity: "Uncommon", icon: "🧟" }, { id: 'dd9', name: "Ghostly Apparition", rarity: "Rare", icon: "👻" },
+            { id: 'dd10', name: "Stone Golem", rarity: "Epic", icon: "🗿" }, { id: 'dd11', name: "Poisonous Fungus", rarity: "Common", icon: "🍄" }, { id: 'dd12', name: "Pit Trap", rarity: "Uncommon", icon: "🕳️" },
+            { id: 'dd13', name: "Lava Elemental", rarity: "Rare", icon: "🌋" }, { id: 'dd14', name: "Shadow Thief", rarity: "Epic", icon: "🥷" }, { id: 'dd15', name: "Minotaur Guardian", rarity: "Legendary", icon: "🐂" },
+            { id: 'dd16', name: "Cursed Armor", rarity: "Uncommon", icon: "🛡️" }, { id: 'dd17', name: "Skeletal Archer", rarity: "Rare", icon: "🏹" }, { id: 'dd18', name: "Vampire Lord", rarity: "Epic", icon: "🧛" },
+            { id: 'dd19', name: "Dragon Hatchling", rarity: "Legendary", icon: "🐉" }, { id: 'dd20', name: "Dungeon Master", rarity: "Mythic", icon: "🧙‍♂️" }, { id: 'dd21', name: "Gelatinous Cube", rarity: "Rare", icon: "🧊" },
+            { id: 'dd22', name: "Impish Trickster", rarity: "Common", icon: "😈" }, { id: 'dd23', name: "Gargoyle Statue", rarity: "Epic", icon: "🗽" }, { id: 'dd24', name: "Lich King", rarity: "Mythic", icon: "👑" },
+            { id: 'dd25', name: "Ancient Dragon", rarity: "Ancient", icon: "🐲" }
+        ];
+
+        const foggyForestPack = [
+            { id: 'ff1', name: "Forest Sprite", rarity: "Common", icon: "🧚" }, { id: 'ff2', name: "Misty Wolf", rarity: "Uncommon", icon: "🐺" }, { id: 'ff3', name: "Whispering Tree", rarity: "Rare", icon: "🌳" },
+            { id: 'ff4', name: "Glimmering Moth", rarity: "Common", icon: "🦋" }, { id: 'ff5', name: "Moss Golem", rarity: "Uncommon", icon: "🌿" }, { id: 'ff6', name: "River Nymph", rarity: "Rare", icon: "🧜‍♀️" },
+            { id: 'ff7', name: "Silent Deer", rarity: "Common", icon: "🦌" }, { id: 'ff8', name: "Shadow Fox", rarity: "Uncommon", icon: "🦊" }, { id: 'ff9', name: "Moonlit Owl", rarity: "Rare", icon: "🦉" },
+            { id: 'ff10', name: "Ancient Treant", rarity: "Epic", icon: "🌲" }, { id: 'ff11', name: "Dewdrop Fairy", rarity: "Common", icon: "💧" }, { id: 'ff12', name: "Thorned Bush", rarity: "Uncommon", icon: " thorns" },
+            { id: 'ff13', name: "Spirit Bear", rarity: "Rare", icon: "🐻" }, { id: 'ff14', name: "Sunstone Bloom", rarity: "Epic", icon: "🌻" }, { id: 'ff15', name: "Forest Guardian", rarity: "Legendary", icon: "🛡️" },
+            { id: 'ff16', name: "Singing Bird", rarity: "Common", icon: "🐦" }, { id: 'ff17', name: "Hidden Spring", rarity: "Uncommon", icon: "🏞️" }, { id: 'ff18', name: "Glowworm Swarm", rarity: "Rare", icon: "✨" },
+            { id: 'ff19', name: "Mystic Mushroom", rarity: "Epic", icon: "🍄" }, { id: 'ff20', name: "Elemental Dragon", rarity: "Mythic", icon: "🐉" }, { id: 'ff21', name: "Shy Rabbit", rarity: "Common", icon: "🐰" },
+            { id: 'ff22', name: "Old Hermit", rarity: "Uncommon", icon: "👴" }, { id: 'ff23', name: "Crystal Pond", rarity: "Rare", icon: "💎" }, { id: 'ff24', name: "Nature's Fury", rarity: "Epic", icon: "🌪️" },
+            { id: 'ff25', name: "World Tree Sprout", rarity: "Ancient", icon: "🌱" }
+        ];
+
+        const intoTheSkyPack = [
+            { id: 'its1', name: "Cloud Weaver", rarity: "Common", icon: "☁️" }, { id: 'its2', name: "Sky Serpent", rarity: "Uncommon", icon: "🐍" }, { id: 'its3', name: "Storm Eagle", rarity: "Rare", icon: "🦅" },
+            { id: 'its4', name: "Wind Sprite", rarity: "Common", icon: "🌬️" }, { id: 'its5', name: "Rainbow Rider", rarity: "Uncommon", icon: "🌈" }, { id: 'its6', name: "Thunder Giant", rarity: "Rare", icon: "⚡" },
+            { id: 'its7', name: "Solar Flare", rarity: "Epic", icon: "☀️" }, { id: 'its8', name: "Lunar Moth", rarity: "Rare", icon: "🌕" }, { id: 'its9', name: "Star Child", rarity: "Epic", icon: "🌟" },
+            { id: 'its10', name: "Celestial Dragon", rarity: "Legendary", icon: "🐉" }, { id: 'its11', name: "Air Elemental", rarity: "Common", icon: "💨" }, { id: 'its12', name: "Floating Island", rarity: "Uncommon", icon: "🏝️" },
+            { id: 'its13', name: "Comet Chaser", rarity: "☄️" }, { id: 'its14', name: "Aurora Spirit", rarity: "Epic", icon: "✨" }, { id: 'its15', name: "Zephyr Knight", rarity: "Legendary", icon: "⚔️" },
+            { id: 'its16', name: "Feathered Friend", rarity: "Common", icon: "🐦" }, { id: 'its17', name: "Sky Whale", rarity: "Uncommon", icon: "🐳" }, { id: 'its18', name: "Stardust Collector", rarity: "Rare", icon: "💫" },
+            { id: 'its19', name: "Galactic Wanderer", rarity: "Epic", icon: "🌌" }, { id: 'its20', name: "Nebula Guardian", rarity: "Mythic", icon: "🔭" }, { id: 'its21', name: "Cloud Serpent", rarity: "Rare", icon: "☁️" },
+            { id: 'its22', name: "Weather Witch", rarity: "Epic", icon: "🧙‍♀️" }, { id: 'its23', name: "Stratosphere Scout", rarity: "Rare", icon: "🎈" }, { id: 'its24', name: "Cosmic Phoenix", rarity: "Mythic", icon: "🔥" },
+            { id: 'its25', name: "Heavenly Gatekeeper", rarity: "Ancient", icon: "😇" }
+        ];
+
+        const landOfDreamsPack = [
+            { id: 'lod1', name: "Dream Weaver", rarity: "Common", icon: "💭" }, { id: 'lod2', name: "Slumbering Giant", rarity: "Uncommon", icon: "😴" }, { id: 'lod3', name: "Nightmare Imp", rarity: "Rare", icon: "😈" },
+            { id: 'lod4', name: "Whispering Breeze", rarity: "Common", icon: "🌬️" }, { id: 'lod5', name: "Floating Castle", rarity: "Uncommon", icon: "🏰" }, { id: 'lod6', name: "Rainbow Bridge", rarity: "Rare", icon: "🌈" },
+            { id: 'lod7', name: "Starlight Steed", rarity: "Epic", icon: "🦄" }, { id: 'lod8', name: "Silent Mime", rarity: "Rare", icon: "🎭" }, { id: 'lod9', name: "Imaginary Friend", rarity: "Epic", icon: "👻" },
+            { id: 'lod10', name: "Sleepwalker King", rarity: "Legendary", icon: "👑" }, { id: 'lod11', name: "Pillow Cloud", rarity: "Common", icon: "☁️" }, { id: 'lod12', name: "Counting Sheep", rarity: "Uncommon", icon: "🐑" },
+            { id: 'lod13', name: "Sandman's Dust", rarity: "Rare", icon: "✨" }, { id: 'lod14', name: "Lucid Dreamer", rarity: "Epic", icon: "🧠" }, { id: 'lod15', name: "Dreamcatcher Spirit", rarity: "Legendary", icon: "🕸️" },
+            { id: 'lod16', name: "Waking Eye", rarity: "Common", icon: "👁️" }, { id: 'lod17', name: "Memory Fragment", rarity: "Uncommon", icon: "🧩" }, { id: 'lod18', name: "Forgotten Toy", rarity: "Rare", icon: "🧸" },
+            { id: 'lod19', name: "Reality Bender", rarity: "Epic", icon: "🌀" }, { id: 'lod20', name: "Oneiric Oracle", rarity: "Mythic", icon: "🔮" }, { id: 'lod21', name: "Chrono-Sleeper", rarity: "Rare", icon: "⏳" },
+            { id: 'lod22', name: "Dream Thief", rarity: "Epic", icon: "🥷" }, { id: 'lod23', name: "Echoing Laughter", rarity: "Rare", icon: "😂" }, { id: 'lod24', name: "Infinite Corridor", rarity: "Mythic", icon: "♾️" },
+            { id: 'lod25', name: "Cosmic Dreamer", rarity: "Ancient", icon: "🌌" }
+        ];
+
+        const skyWaifusPack = [
+            { id: 'sw1', name: "Cloud Dancer Anya", rarity: "Idol", icon: "💃" }, { id: 'sw2', name: "Starfall Seraphina", rarity: "Mystic", icon: "🌠" }, { id: 'sw3', name: "Zephyr Blade Kael", rarity: "Ultra Rare", icon: "⚔️" },
+            { id: 'sw4', name: "Aurora Muse Lyra", rarity: "Idol", icon: "🌈" }, { id: 'sw5', name: "Lunar Oracle Selene", rarity: "Mystic", icon: "🌕" }, { id: 'sw6', name: "Solar Bloom Elara", rarity: "Ultra Rare", icon: "☀️" },
+            { id: 'sw7', name: "Sky Siren Aria", rarity: "Idol", icon: "🎶" }, { id: 'sw8', name: "Storm Weaver Rai", rarity: "Mystic", icon: "⚡" }, { id: 'sw9', name: "Celestial Archer Nova", rarity: "Ultra Rare", icon: "🏹" },
+            { id: 'sw10', name: "Galactic Idol Celeste", rarity: "Legendary", icon: "🌌" }, { id: 'sw11', name: "Cloud Whisperer Echo", rarity: "Idol", icon: "☁️" }, { id: 'sw12', name: "Winged Messenger Iris", rarity: "Mystic", icon: "🕊️" },
+            { id: 'sw13', name: "Thunderclap Thalia", rarity: "Ultra Rare", icon: "⛈️" }, { id: 'sw14', name: "Stardust Dreamer Luna", rarity: "Idol", icon: "💫" }, { id: 'sw15', name: "Comet Rider Zara", rarity: "Mystic", icon: "☄️" },
+            { id: 'sw16', name: "Horizon Guardian Freya", rarity: "Ultra Rare", icon: "🌅" }, { id: 'sw17', name: "Aether Weaver Seraph", rarity: "Idol", icon: "✨" }, { id: 'sw18', name: "Stratosphere Songstress", rarity: "Mystic", icon: "🎤" },
+            { id: 'sw19', name: "Meteor Blade Akari", rarity: "Ultra Rare", icon: "🌠" }, { id: 'sw20', name: "Cosmic Empress Zen", rarity: "Legendary", icon: "👑" }, { id: 'sw21', name: "Vapor Veil Vesper", rarity: "Idol", icon: "🌫️" },
+            { id: 'sw22', name: "Sky Serpent Slayer", rarity: "Mystic", icon: "🐍" }, { id: 'sw23', name: "Featherlight Phantom", rarity: "Ultra Rare", icon: "👻" }, { id: 'sw24', name: "Astral Blossom Lily", rarity: "Legendary", icon: "🌸" },
+            { id: 'sw25', name: "Heavenly Harmony Aura", rarity: "Mythic", icon: "😇" }
+        ];
+
+        const foodPack = [
+            { id: 'f1', name: "Happy Apple", rarity: "Common", icon: "🍎" }, { id: 'f2', name: "Grumpy Grape", rarity: "Common", icon: "🍇" }, { id: 'f3', name: "Cheesy Slice", rarity: "Uncommon", icon: "🧀" },
+            { id: 'f4', name: "Bread Buddy", rarity: "Uncommon", icon: "🍞" }, { id: 'f5', name: "Salty Pretzel", rarity: "Rare", icon: "🥨" }, { id: 'f6', name: "Sweet Donut", rarity: "Rare", icon: "🍩" },
+            { id: 'f7', name: "Spicy Chili", rarity: "Common", icon: "🌶️" }, { id: 'f8', name: "Cool Cucumber", rarity: "Uncommon", icon: "🥒" }, { id: 'f9', name: "Golden Banana", rarity: "Rare", icon: "🍌" },
+            { id: 'f10', name: "Mighty Burger", rarity: "Epic", icon: "🍔" }, { id: 'f11', name: "Jolly Jelly", rarity: "Common", icon: "🍮" }, { id: 'f12', name: "Sleepy Sushi", rarity: "Uncommon", icon: "🍣" },
+            { id: 'f13', name: "Pizza Pal", rarity: "Rare", icon: "🍕" }, { id: 'f14', name: "Taco Titan", rarity: "Epic", icon: "🌮" }, { id: 'f15', name: "Ice Cream King", rarity: "Legendary", icon: "🍦" },
+            { id: 'f16', name: "Smiling Strawberry", rarity: "Common", icon: "🍓" }, { id: 'f17', name: "Wobbly Egg", rarity: "Uncommon", icon: "🥚" }, { id: 'f18', name: "Coffee Comrade", rarity: "Rare", icon: "☕" },
+            { id: 'f19', name: "Tea Time Master", rarity: "Epic", icon: "🍵" }, { id: 'f20', name: "Cookie Monster", rarity: "Legendary", icon: "🍪" }, { id: 'f21', name: "Broccoli Buddy", rarity: "Common", icon: "🥦" },
+            { id: 'f22', name: "Carrot Captain", rarity: "Uncommon", icon: "🥕" }, { id: 'f23', name: "Popcorn Prince", rarity: "Rare", icon: "🍿" }, { id: 'f24', name: "Candy Queen", rarity: "Epic", icon: "🍬" },
+            { id: 'f25', name: "Feast Master", rarity: "Mythic", icon: "🍽️" }
+        ];
+
+        // Object to easily loop through all packs for checklist generation
+        const allPacks = {
+            'Classic': classicPack,
+            'Waifu': waifuPack,
+            '8-Bit Retro': retroPack,
+            'Waifu: 2nd Edition': waifu2ndEditionPack,
+            'Code Language': codePack,
+            'Darkness': darknessPack,
+            'Decaying Dungeon': decayingDungeonPack,
+            'Foggy Forest': foggyForestPack,
+            'Into The Sky': intoTheSkyPack,
+            'Land of Dreams': landOfDreamsPack,
+            'Sky Waifus': skyWaifusPack,
+            'Food': foodPack
+        };
+
+        // Define Tier I packs for unlock condition checking
+        const tier1Packs = [
+            classicPack, waifuPack, retroPack,
+            waifu2ndEditionPack, codePack, darknessPack
+        ];
+        // Define Tier II packs for unlock condition checking
+        const tier2Packs = [
+            decayingDungeonPack, foggyForestPack, intoTheSkyPack,
+            landOfDreamsPack, skyWaifusPack, foodPack
+        ];
+
+        // Define "Waifu" related packs for Waifu of Moon unlock
+        const waifuRelatedPacks = [
+            waifuPack,
+            waifu2ndEditionPack,
+            skyWaifusPack
+        ];
+
+        // Helper to get pack cost (since summonPack needs it)
+        function getPackCost(packName) {
+            switch (packName) {
+                case 'Classic': return 100;
+                case 'Waifu': return 2500;
+                case '8-Bit Retro': return 1000;
+                case 'Waifu: 2nd Edition': return 5000;
+                case 'Code Language': return 10000;
+                case 'Darkness': return 7500;
+                case 'Decaying Dungeon': return 15000;
+                case 'Foggy Forest': return 18000;
+                case 'Into The Sky': return 20000;
+                case 'Land of Dreams': return 22000;
+                case 'Sky Waifus': return 28000;
+                case 'Food': return 24000;
+                default: return 0;
+            }
+        }
+
+        // --- Save/Load Functions ---
+        const SAVE_KEY = 'rollEmAllSaveData';
+
+        /**
+         * Saves the current game state to localStorage.
+         */
+        function saveGame() {
+            const saveData = {
+                coins: coins,
+                coinRate: coinRate,
+                luckChance: luckChance,
+                collection: collection,
+                redeemedCodes: Array.from(redeemedCodes), // Convert Set to Array for saving
+                skipAnimation: skipAnimation,
+                autoRollAvailable: autoRollAvailable,
+                autoRollActive: autoRollActive,
+                currentAutoRollPack: currentAutoRollPack,
+                autoRollDelay: autoRollDelay,
+                currentTier: currentTier,
+                cumulativePlayTime: cumulativePlayTime,
+                lastActiveTime: lastActiveTime
+            };
+            localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+            console.log("Game saved!");
+        }
+
+        /**
+         * Loads the game state from localStorage.
+         */
+        function loadGame() {
+            const savedData = localStorage.getItem(SAVE_KEY);
+            if (savedData) {
+                const parsedData = JSON.parse(savedData);
+                coins = parsedData.coins || 0;
+                coinRate = parsedData.coinRate || 1;
+                luckChance = parsedData.luckChance || 100;
+                collection = parsedData.collection || [];
+                redeemedCodes = new Set(parsedData.redeemedCodes || []); // Convert Array back to Set
+                skipAnimation = parsedData.skipAnimation || false;
+                autoRollAvailable = parsedData.autoRollAvailable || false;
+                autoRollActive = parsedData.autoRollActive || false;
+                currentAutoRollPack = parsedData.currentAutoRollPack || null;
+                autoRollDelay = parsedData.autoRollDelay || 3000;
+                currentTier = parsedData.currentTier || 1;
+                cumulativePlayTime = parsedData.cumulativePlayTime || 0;
+                lastActiveTime = parsedData.lastActiveTime || Date.now();
+
+                // Calculate time elapsed since last save and add to cumulativePlayTime
+                const timeSinceLastSave = Date.now() - lastActiveTime;
+                // Add elapsed time, but cap it to prevent huge jumps if tab was left open for days
+                // Cap at 1 hour (3.6 million ms) to prevent excessive time accumulation from long-closed tabs
+                if (timeSinceLastSave > 0 && timeSinceLastSave < 3600000) {
+                     cumulativePlayTime += timeSinceLastSave;
+                }
+                lastActiveTime = Date.now(); // Reset for current session
+
+                // If auto-roll was active, restart it
+                if (autoRollActive && currentAutoRollPack) {
+                    startAutoRoll();
+                }
+
+                log("Game loaded!");
+            } else {
+                log("No saved game found. Starting new game!");
+                // Initialize for new game
+                coins = 0;
+                coinRate = 1;
+                luckChance = 100;
+                collection = [];
+                redeemedCodes = new Set();
+                skipAnimation = false;
+                autoRollAvailable = false;
+                autoRollActive = false;
+                currentAutoRollPack = null;
+                autoRollDelay = 3000;
+                currentTier = 1;
+                cumulativePlayTime = 0;
+                lastActiveTime = Date.now();
+            }
+            updateStats(); // Update UI after loading
+            renderPackChecklists(); // Re-render checklists based on loaded collection
+            checkTierUpgradeEligibility(); // Re-check tier eligibility
+            checkWaifuOfMoonEligibility(); // Re-check Waifu of Moon eligibility
+            checkWaifuOfGamingPlayTimeUnlock(); // Check Waifu of Gaming playtime unlock
+            checkWaifuOfWaterEligibility(); // Check Waifu of Water eligibility
+            checkChefWaifuEligibility(); // Check Chef Waifu eligibility
+            checkRichWaifuEligibility(); // Check Rich Waifu eligibility
+            // Hide Tier II summon buttons initially if not unlocked
+            if (currentTier === 1) {
+                document.getElementById("tier2SummonButtons").classList.add("hidden");
+            } else {
+                document.getElementById("tier2SummonButtons").classList.remove("hidden");
+            }
+        }
+
+        // Passive coins generation
+        setInterval(() => {
+            coins += coinRate;
+            updateStats();
+            checkTierUpgradeEligibility(); // Check eligibility periodically
+            checkWaifuOfMoonEligibility(); // Check Waifu of Moon eligibility
+            checkWaifuOfWaterEligibility(); // Check Waifu of Water eligibility
+            checkChefWaifuEligibility(); // Check Chef Waifu eligibility
+            checkRichWaifuEligibility(); // Check Rich Waifu eligibility
+        }, 1000);
+
+        // Auto-save every 10 seconds
+        setInterval(saveGame, 10000);
+
+        // Update playtime every 5 seconds and check for unlock
+        setInterval(updatePlayTime, 5000);
+
+        /**
+         * Updates the cumulative playtime and checks for Waifu of Gaming unlock.
+         */
+        function updatePlayTime() {
+            const now = Date.now();
+            const timeElapsed = now - lastActiveTime;
+            cumulativePlayTime += timeElapsed;
+            lastActiveTime = now;
+            // console.log(`Cumulative Play Time: ${Math.floor(cumulativePlayTime / 1000)} seconds`); // For debugging playtime
+            checkWaifuOfGamingPlayTimeUnlock();
+        }
+
+        /**
+         * Checks if the player has played for 30 minutes to unlock Waifu of Gaming.
+         */
+        function checkWaifuOfGamingPlayTimeUnlock() {
+            const thirtyMinutesInMs = 30 * 60 * 1000;
+            if (cumulativePlayTime >= thirtyMinutesInMs && !collection.some(c => c.id === waifuOfGaming.id)) {
+                unlockWaifuOfGaming();
+            }
+        }
+
+        /**
+         * Creates a confetti effect on the screen.
+         */
+        function createConfetti() {
+            const confettiContainer = document.createElement('div');
+            confettiContainer.style.position = 'fixed';
+            confettiContainer.style.top = '0';
+            confettiContainer.style.left = '0';
+            confettiContainer.style.width = '100%';
+            confettiContainer.style.height = '100%';
+            confettiContainer.style.pointerEvents = 'none';
+            confettiContainer.style.zIndex = '9999';
+            document.body.appendChild(confettiContainer);
+
+            for (let i = 0; i < 150; i++) { // 150 confetti pieces
+                const confetti = document.createElement('div');
+                confetti.style.position = 'absolute';
+                confetti.style.width = `${Math.random() * 8 + 5}px`; // Random size
+                confetti.style.height = `${Math.random() * 8 + 5}px`;
+                confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 70%, 60%)`; // Random color
+                confetti.style.left = `${Math.random() * 100}vw`;
+                confetti.style.top = `${-20 - Math.random() * 100}px`; // Start above screen
+                confetti.style.borderRadius = '50%'; // Make them round or square
+                confetti.style.animation = `
+                    fall ${Math.random() * 3 + 2}s linear forwards,
+                    rotate ${Math.random() * 2 + 1}s linear infinite,
+                    fadeOut ${Math.random() * 1 + 0.5}s ${Math.random() * 2 + 1}s forwards
+                `;
+                confetti.style.animationDelay = `${Math.random() * 0.5}s`; // Stagger start
+                confettiContainer.appendChild(confetti);
+            }
+
+            // Remove confetti container after animation
+            setTimeout(() => {
+                confettiContainer.remove();
+            }, 5000); // Remove after 5 seconds
+        }
+
+        /**
+         * Performs a special animation for Waifu of Gaming, including ASCII art.
+         * @param {Object} character - The Waifu of Gaming character object.
+         */
+        async function animateSpecialWaifuOfGaming(character) {
+            if (skipAnimation) return;
+
+            const animationArea = document.getElementById("summonAnimationArea");
+            animationArea.classList.remove("hidden");
+            animationArea.innerHTML = ''; // Clear previous content
+
+            const container = document.createElement('div');
+            container.className = 'summon-animation-container flex-col'; // Add flex-col for vertical alignment
+            animationArea.appendChild(container);
+
+            // Display ASCII art first
+            const asciiDisplay = document.createElement('pre'); // Use <pre> for ASCII art
+            asciiDisplay.className = 'text-indigo-400 text-xs sm:text-sm md:text-base lg:text-lg font-mono opacity-0 transition-opacity duration-1000 ease-out';
+            asciiDisplay.style.whiteSpace = 'pre-wrap'; // Ensure wrapping
+            asciiDisplay.style.textAlign = 'center';
+            asciiDisplay.textContent = character.asciiArt; // Use the ASCII art
+            container.appendChild(asciiDisplay);
+
+            await new Promise(resolve => setTimeout(resolve, 500)); // Delay before showing ASCII
+            asciiDisplay.style.opacity = '1';
+
+            await new Promise(resolve => setTimeout(resolve, 1500)); // Show ASCII for 1.5 seconds
+
+            // Fade out ASCII and reveal character details
+            asciiDisplay.style.opacity = '0';
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Fade out duration
+
+            const charDisplay = document.createElement('div');
+            charDisplay.className = 'summon-char-display visible'; // Make it visible directly
+            charDisplay.innerHTML = `<div class="text-6xl mb-2">${character.icon}</div><div class="text-xl font-bold">${character.name}</div><div class="text-md text-gray-400">[${character.rarity}]</div>`;
+            container.appendChild(charDisplay);
+
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Show character for 2 seconds
+
+            container.remove();
+            animationArea.classList.add("hidden");
+        }
+
+        /**
+         * Unlocks the Waifu of Gaming character.
+         */
+        function unlockWaifuOfGaming() {
+            if (collection.some(c => c.id === waifuOfGaming.id)) {
+                return; // Already unlocked
+            }
+            collection.push({ ...waifuOfGaming, uniqueCollectionId: `${waifuOfGaming.id}-${Date.now()}-${Math.random()}` });
+            console.log("DEBUG: Waifu of Gaming added to collection:", waifuOfGaming);
+            log("🎉🎮 Congratulations! You have unlocked the Ultra Legendary Waifu of Gaming!");
+            createConfetti(); // Trigger confetti
+            animateSpecialWaifuOfGaming(waifuOfGaming); // Trigger special animation
+            renderPackChecklists();
+            saveGame();
+        }
+
+
+        /**
+         * Updates the displayed stats (coins, coin rate, luck chance) and tier status on the UI.
+         */
+        function updateStats() {
+            document.getElementById("coins").innerText = coins;
+            document.getElementById("rate").innerText = coinRate;
+            document.getElementById("luck").innerText = luckChance;
+            document.getElementById("tierStatus").innerText = `Current Tier: ${currentTier === 1 ? 'I' : 'II'}`;
+        }
+
+        /**
+         * Logs a message to the #log div, replacing its current content.
+         * @param {string} text - The message to display.
+         */
+        function log(text) {
+            document.getElementById("log").textContent = text;
+        }
+
+        /**
+         * Checks if the player has collected all Tier I characters.
+         * @returns {boolean} True if all Tier I characters are collected, false otherwise.
+         */
+        function hasCollectedAllTier1Characters() {
+            const collectedNamesSet = new Set(collection.map(c => c.name));
+            for (const pack of tier1Packs) {
+                for (const char of pack) {
+                    // Skip checking for Waifu of Sun as it's code-exclusive and not part of a pack's standard collection
+                    if (char.id === waifuOfSun.id) continue;
+                    if (!collectedNamesSet.has(char.name)) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        /**
+         * Checks if the player has collected all Tier II characters.
+         * @returns {boolean} True if all Tier II characters are collected, false otherwise.
+         */
+        function hasCollectedAllTier2Characters() {
+            const collectedNamesSet = new Set(collection.map(c => c.name));
+            for (const pack of tier2Packs) {
+                for (const char of pack) {
+                    if (!collectedNamesSet.has(char.name)) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        /**
+         * Checks if the player is eligible to unlock Tier II and shows/hides the button.
+         */
+        function checkTierUpgradeEligibility() {
+            const tierUnlockArea = document.getElementById("tierUnlockArea");
+            if (currentTier === 1 && hasCollectedAllTier1Characters() && coins >= TIER_II_UNLOCK_COST) {
+                tierUnlockArea.classList.remove("hidden");
+            } else {
+                tierUnlockArea.classList.add("hidden");
+            }
+        }
+
+        /**
+         * Unlocks Tier II if conditions are met.
+         */
+        function unlockTierII() {
+            if (currentTier === 2) {
+                log("⚠️ Tier II is already unlocked!");
+                return;
+            }
+            if (!hasCollectedAllTier1Characters()) {
+                log("❌ You need to collect ALL Tier I characters first!");
+                return;
+            }
+            if (coins < TIER_II_UNLOCK_COST) {
+                log(`❌ Not enough coins! You need ${TIER_II_UNLOCK_COST} coins.`);
+                // Attempt to unlock Sad Waifu if not already unlocked
+                if (!collection.some(c => c.id === sadWaifu.id)) {
+                    unlockSadWaifu();
+                }
+                return;
+            }
+
+            coins -= TIER_II_UNLOCK_COST;
+            currentTier = 2;
+            updateStats();
+            log("🎉 Tier II Workbench unlocked! New packs available!");
+            document.getElementById("tier1SummonButtons").classList.remove("hidden"); // Ensure Tier 1 are visible
+            document.getElementById("tier2SummonButtons").classList.remove("hidden"); // Show Tier 2 buttons
+            document.getElementById("tierUnlockArea").classList.add("hidden"); // Hide unlock button
+            renderPackChecklists(); // Re-render checklists to include new packs
+            openAutoRollControls(); // Re-populate auto-roll dropdown with new packs
+            checkWaifuOfMoonEligibility(); // Check for Moon Waifu after unlocking Tier II
+            checkWaifuOfWaterEligibility(); // Re-check for Waifu of Water
+            checkChefWaifuEligibility(); // Check for Chef Waifu
+            checkRichWaifuEligibility(); // Check for Rich Waifu
+            saveGame(); // Save after unlocking tier
+        }
+
+        /**
+         * Checks if the player has collected all characters from "Waifu" related packs.
+         * @returns {boolean} True if all Waifu characters are collected, false otherwise.
+         */
+        function hasCollectedAllWaifuCharacters() {
+            const collectedNamesSet = new Set(collection.map(c => c.name));
+            for (const pack of waifuRelatedPacks) {
+                for (const char of pack) {
+                    // Skip checking for Waifu of Sun as it's code-exclusive
+                    if (char.id === waifuOfSun.id) continue;
+                    if (!collectedNamesSet.has(char.name)) {
+                        return false;
+                    }
+                }
+            }
+            // Also check if Waifu of Moon is ALREADY collected to prevent repeated unlocks
+            if (collectedNamesSet.has(waifuOfMoon.name)) {
+                return false; // Already collected, so not eligible for 'new' unlock
+            }
+            return true;
+        }
+
+        /**
+         * Checks if the player is eligible for Waifu of Moon and shows/hides the button.
+         */
+        function checkWaifuOfMoonEligibility() {
+            const waifuOfMoonUnlockBtn = document.getElementById("waifuOfMoonUnlockBtn");
+            const collectedNamesSet = new Set(collection.map(c => c.name));
+
+            // Only show if Waifu of Moon is NOT already in collection and conditions are met
+            if (!collectedNamesSet.has(waifuOfMoon.name) && hasCollectedAllWaifuCharacters()) {
+                waifuOfMoonUnlockBtn.classList.remove("hidden");
+            } else {
+                waifuOfMoonUnlockBtn.classList.add("hidden");
+            }
+        }
+
+        /**
+         * Unlocks Waifu of Moon if conditions are met.
+         */
+        function unlockWaifuOfMoon() {
+            const collectedNamesSet = new Set(collection.map(c => c.name));
+            if (collectedNamesSet.has(waifuOfMoon.name)) {
+                log("⚠️ You have already claimed Waifu of Moon!");
+                return;
+            }
+            if (!hasCollectedAllWaifuCharacters()) {
+                log("❌ You need to collect ALL characters from Waifu, Waifu: 2nd Edition, and Sky Waifus packs first!");
+                return;
+            }
+
+            // Add Waifu of Moon to collection
+            collection.push({ ...waifuOfMoon, uniqueCollectionId: `${waifuOfMoon.id}-${Date.now()}-${Math.random()}` });
+            console.log("DEBUG: Waifu of Moon added to collection:", waifuOfMoon);
+            log("✨🌙 Congratulations! You have unlocked the Legendary Waifu of Moon!");
+            renderPackChecklists(); // Update checklists
+            checkWaifuOfMoonEligibility(); // Hide the button after unlocking
+            // Optionally trigger an animation for the special character
+            animateSummonedCharacter(waifuOfMoon);
+            saveGame(); // Save after unlocking special character
+        }
+
+        /**
+         * Checks if the player is eligible for Waifu of Water and shows/hides the button.
+         */
+        function checkWaifuOfWaterEligibility() {
+            const waifuOfWaterUnlockBtn = document.getElementById("waifuOfWaterUnlockBtn");
+            const collectedNamesSet = new Set(collection.map(c => c.name));
+
+            // Only show if Waifu of Water is NOT already in collection and conditions are met
+            if (!collectedNamesSet.has(waifuOfWater.name) && hasCollectedAllTier1Characters()) {
+                waifuOfWaterUnlockBtn.classList.remove("hidden");
+            } else {
+                waifuOfWaterUnlockBtn.classList.add("hidden");
+            }
+        }
+
+        /**
+         * Unlocks Waifu of Water if conditions are met.
+         */
+        function unlockWaifuOfWater() {
+            const collectedNamesSet = new Set(collection.map(c => c.name));
+            if (collectedNamesSet.has(waifuOfWater.name)) {
+                log("⚠️ You have already claimed Waifu of Water!");
+                return;
+            }
+            if (!hasCollectedAllTier1Characters()) {
+                log("❌ You need to collect ALL characters from Tier I packs first!");
+                return;
+            }
+
+            collection.push({ ...waifuOfWater, uniqueCollectionId: `${waifuOfWater.id}-${Date.now()}-${Math.random()}` });
+            console.log("DEBUG: Waifu of Water added to collection:", waifuOfWater);
+            log("💧 Congratulations! You have unlocked the Legendary Waifu of Water!");
+            renderPackChecklists();
+            checkWaifuOfWaterEligibility(); // Hide button
+            animateSummonedCharacter(waifuOfWater);
+            saveGame();
+        }
+
+        /**
+         * Checks if the player is eligible for Chef Waifu and shows/hides the button.
+         */
+        function checkChefWaifuEligibility() {
+            const chefWaifuUnlockBtn = document.getElementById("chefWaifuUnlockBtn");
+            const collectedNamesSet = new Set(collection.map(c => c.name));
+
+            // Only show if Chef Waifu is NOT already in collection and Tier II is unlocked and all Tier II chars collected
+            if (!collectedNamesSet.has(chefWaifu.name) && currentTier === 2 && hasCollectedAllTier2Characters()) {
+                chefWaifuUnlockBtn.classList.remove("hidden");
+            } else {
+                chefWaifuUnlockBtn.classList.add("hidden");
+            }
+        }
+
+        /**
+         * Unlocks Chef Waifu if conditions are met.
+         */
+        function unlockChefWaifu() {
+            const collectedNamesSet = new Set(collection.map(c => c.name));
+            if (collectedNamesSet.has(chefWaifu.name)) {
+                log("⚠️ You have already claimed Chef Waifu!");
+                return;
+            }
+            if (currentTier !== 2) {
+                log("❌ You need to unlock Tier II first to claim Chef Waifu!");
+                return;
+            }
+            if (!hasCollectedAllTier2Characters()) {
+                log("❌ You need to collect ALL characters from Tier II packs first!");
+                return;
+            }
+
+            collection.push({ ...chefWaifu, uniqueCollectionId: `${chefWaifu.id}-${Date.now()}-${Math.random()}` });
+            console.log("DEBUG: Chef Waifu added to collection:", chefWaifu);
+            log("👩‍🍳 Congratulations! You have unlocked the Mythic Chef Waifu!");
+            renderPackChecklists();
+            checkChefWaifuEligibility(); // Hide button
+            animateSummonedCharacter(chefWaifu);
+            saveGame();
+        }
+
+        /**
+         * Unlocks Sad Waifu (triggered by insufficient funds).
+         */
+        function unlockSadWaifu() {
+            if (collection.some(c => c.id === sadWaifu.id)) {
+                return; // Already unlocked
+            }
+            collection.push({ ...sadWaifu, uniqueCollectionId: `${sadWaifu.id}-${Date.now()}-${Math.random()}` });
+            console.log("DEBUG: Sad Waifu added to collection:", sadWaifu);
+            log("😢 You tried to buy something without enough money... and found Sad Waifu!");
+            renderPackChecklists();
+            animateSummonedCharacter(sadWaifu);
+            saveGame();
+        }
+
+        /**
+         * Checks if the player is eligible for Rich Waifu and shows/hides the button.
+         */
+        function checkRichWaifuEligibility() {
+            const richWaifuUnlockBtn = document.getElementById("richWaifuUnlockBtn");
+            const collectedNamesSet = new Set(collection.map(c => c.name));
+
+            // Only show if Rich Waifu is NOT already in collection and coins are sufficient
+            if (!collectedNamesSet.has(richWaifu.name) && coins >= RICH_WAIFU_UNLOCK_COINS) {
+                richWaifuUnlockBtn.classList.remove("hidden");
+            } else {
+                richWaifuUnlockBtn.classList.add("hidden");
+            }
+        }
+
+        /**
+         * Unlocks Rich Waifu if conditions are met.
+         */
+        function unlockRichWaifu() {
+            const collectedNamesSet = new Set(collection.map(c => c.name));
+            if (collectedNamesSet.has(richWaifu.name)) {
+                log("⚠️ You have already claimed Rich Waifu!");
+                return;
+            }
+            if (coins < RICH_WAIFU_UNLOCK_COINS) {
+                log(`❌ Not enough coins! You need ${RICH_WAIFU_UNLOCK_COINS} coins to claim Rich Waifu.`);
+                return;
+            }
+
+            collection.push({ ...richWaifu, uniqueCollectionId: `${richWaifu.id}-${Date.now()}-${Math.random()}` });
+            console.log("DEBUG: Rich Waifu added to collection:", richWaifu);
+            log("🤑 Congratulations! You have unlocked the Wealthy Rich Waifu!");
+            renderPackChecklists();
+            checkRichWaifuEligibility(); // Hide button
+            animateSummonedCharacter(richWaifu);
+            saveGame();
+        }
+
+
+        /**
+         * Performs a visual animation for a summoned character.
+         * @param {Object} character - The character object to display.
+         */
+        async function animateSummonedCharacter(character) {
+            if (skipAnimation) return;
+
+            const animationArea = document.getElementById("summonAnimationArea");
+            animationArea.classList.remove("hidden");
+            animationArea.innerHTML = ''; // Clear previous content
+
+            const container = document.createElement('div');
+            container.className = 'summon-animation-container';
+            animationArea.appendChild(container);
+
+            const crateBase = document.createElement('div');
+            crateBase.className = 'crate-base summon-glow';
+            container.appendChild(crateBase);
+
+            const crateLid = document.createElement('div');
+            crateLid.className = 'crate-lid';
+            container.appendChild(crateLid);
+
+            const charDisplay = document.createElement('div');
+            charDisplay.className = 'summon-char-display';
+            charDisplay.innerHTML = `<div class="text-6xl mb-2">${character.icon}</div><div class="text-xl font-bold">${character.name}</div><div class="text-md text-gray-400">[${character.rarity}]</div>`;
+            crateBase.appendChild(charDisplay); // Append to base so it's 'inside'
+
+            await new Promise(resolve => setTimeout(resolve, 200)); // Small delay before animation starts
+
+            // Open the crate lid
+            crateLid.classList.add('open');
+            await new Promise(resolve => setTimeout(resolve, 700)); // Duration of lid opening animation
+
+            // Reveal and animate character
+            charDisplay.classList.add('visible');
+            await new Promise(resolve => setTimeout(resolve, 1500)); // Show character for 1.5 seconds
+
+            // Hide character and close lid (reverse animation)
+            charDisplay.classList.remove('visible');
+            crateLid.classList.remove('open');
+            await new Promise(resolve => setTimeout(resolve, 700)); // Duration of lid closing animation
+
+            container.remove(); // Remove the entire animation container
+            animationArea.classList.add("hidden");
+        }
+
+
+        /**
+         * Summons a character from a specified pack if enough coins are available.
+         * There's a chance for a lucky roll to summon two characters.
+         * @param {Array<Object>} pack - The array of characters to pull from.
+         * @param {number} cost - The coin cost to summon from this pack.
+         * @param {string} packName - The display name of the pack.
+         */
+        async function summonPack(pack, cost, packName) {
+            // Check if pack is from Tier II and if Tier II is unlocked
+            if (currentTier === 1 && !tier1Packs.includes(pack)) { // Simple check if pack is not in Tier 1 packs
+                 log(`❌ ${packName} Pack is a Tier II pack. Unlock Tier II first!`);
+                 return;
+            }
+
+            if (coins < cost) {
+                log(`❌ Not enough coins for ${packName} Pack. You need ${cost} coins.`);
+                // Attempt to unlock Sad Waifu if not already unlocked
+                if (!collection.some(c => c.id === sadWaifu.id)) {
+                    unlockSadWaifu();
+                }
+                return;
+            }
+            coins -= cost;
+            updateStats();
+
+            let pulled = [pack[Math.floor(Math.random() * pack.length)]];
+            // Check for lucky roll
+            if (Math.random() < 1 / luckChance) {
+                pulled.push(pack[Math.floor(Math.random() * pack.length)]);
+                log("🍀 Lucky Roll! You summoned two characters!");
+            }
+
+            let output = `🎉 ${packName} Summon:\n`;
+            for (const char of pulled) {
+                collection.push({ ...char, uniqueCollectionId: `${char.id}-${Date.now()}-${Math.random()}` });
+                console.log("DEBUG: Character added to collection:", char); // Log character added
+                output += `${char.icon} ${char.name} [${char.rarity}]\n`;
+                if (!skipAnimation) {
+                    await animateSummonedCharacter(char); // Animate each character if not skipping
+                }
+            }
+            log(output); // Log the final summon message after animations (or immediately if skipped)
+
+            renderPackChecklists(); // Update checklists after summoning
+            checkTierUpgradeEligibility(); // Check eligibility after each summon
+            checkWaifuOfMoonEligibility(); // Check Waifu of Moon eligibility after each summon
+            checkWaifuOfWaterEligibility(); // Check Waifu of Water eligibility
+            checkChefWaifuEligibility(); // Check Chef Waifu eligibility
+            checkRichWaifuEligibility(); // Check Rich Waifu eligibility
+            saveGame(); // Save after summoning
+        }
+
+        /**
+         * Displays all currently rolled characters in the collection.
+         */
+        function viewCollection() {
+            if (collection.length === 0) {
+                log("📦 No characters rolled yet.");
+                return;
+            }
+            let out = "📜 Rolled Characters:\n";
+            // Create a temporary set to track unique character names for display
+            const uniqueCollectedNames = new Set();
+            collection.forEach(c => {
+                // Only add if not already added to avoid listing duplicates when viewing
+                if (!uniqueCollectedNames.has(c.name)) {
+                    out += `${c.icon} ${c.name} [${c.rarity}]\n`;
+                    uniqueCollectedNames.add(c.name);
+                }
+            });
+            console.log("DEBUG: Current unique collected characters for display:", Array.from(uniqueCollectedNames)); // Log for viewCollection
+            log(out);
+            renderPackChecklists(); // Also update checklists
+        }
+
+        /**
+         * Sells a random character from the collection for 50 coins (increased from 5).
+         */
+        function sellRandom() {
+            if (collection.length === 0) {
+                log("😢 No characters to sell.");
+                return;
+            }
+            // Filter out exclusive characters from being sold
+            const sellableCollection = collection.filter(char => !char.exclusive);
+            if (sellableCollection.length === 0) {
+                log("😢 No sellable characters in your collection. Exclusive characters cannot be sold.");
+                return;
+            }
+
+            const i = Math.floor(Math.random() * sellableCollection.length);
+            const soldChar = sellableCollection[i];
+
+            // Find and remove the exact soldChar instance from the main collection array
+            const originalIndex = collection.findIndex(char => char.uniqueCollectionId === soldChar.uniqueCollectionId);
+            if (originalIndex > -1) {
+                collection.splice(originalIndex, 1);
+                console.log("DEBUG: Character sold and removed from collection:", soldChar); // Log character sold
+            }
+            
+            coins += 50; // Increased sell price
+            updateStats();
+            log(`💰 Sold ${soldChar.name} for 50 coins.`);
+            renderPackChecklists(); // Update checklists after selling
+            checkTierUpgradeEligibility(); // Check eligibility after each sell
+            checkWaifuOfMoonEligibility(); // Check Waifu of Moon eligibility after selling
+            checkWaifuOfWaterEligibility(); // Check Waifu of Water eligibility
+            checkChefWaifuEligibility(); // Check Chef Waifu eligibility
+            checkRichWaifuEligibility(); // Check Rich Waifu eligibility
+            saveGame(); // Save after selling
+        }
+
+        /**
+         * Opens the shop, displaying available upgrades for coin rate and luck chance.
+         */
+        function openShop() {
+            log("🛍️ Shop Loaded: Buy Upgrades Below");
+            // Hide other areas if open
+            document.getElementById("redeemCodeArea").classList.add("hidden");
+            document.getElementById("packChecklistsArea").classList.add("hidden");
+            document.getElementById("autoRollArea").classList.add("hidden"); // Hide auto roll area
+            document.getElementById("tierUnlockArea").classList.add("hidden"); // Hide tier unlock area
+            document.getElementById("specialCharacterUnlockArea").classList.remove("hidden"); // Ensure special character unlock area is visible
+            
+
+            const area = document.getElementById("shopArea");
+            area.innerHTML = `
+                <button onclick="buyRate(10,100)" class="btn-shop py-3 px-6 rounded-lg font-bold text-gray-200 shadow-md border-2 border-gray-600">📈 +10 Coin/sec (100 coins)</button>
+                <button onclick="buyRate(40,300)" class="btn-shop py-3 px-6 rounded-lg font-bold text-gray-200 shadow-md border-2 border-gray-600">📈 +40 Coin/sec (300 coins)</button>
+                <button onclick="buyRate(90,600)" class="btn-shop py-3 px-6 rounded-lg font-bold text-gray-200 shadow-md border-2 border-gray-600">📈 +90 Coin/sec (600 coins)</button>
+                <button onclick="buyLuck(50,200)" class="btn-shop py-3 px-6 rounded-lg font-bold text-gray-200 shadow-md border-2 border-gray-600">🍀 1/50 Luck (200 coins)</button>
+                <button onclick="buyLuck(20,500)" class="btn-shop py-3 px-6 rounded-lg font-bold text-gray-200 shadow-md border-2 border-gray-600">🍀 1/20 Luck (500 coins)</button>
+                <button onclick="buyLuck(10,1000)" class="btn-shop py-3 px-6 rounded-lg font-bold text-gray-200 shadow-md border-2 border-gray-600">🍀 1/10 Luck (1000 coins)</button>
+                ${!skipAnimation ? `<button onclick="buySkipAnimation(500)" id="buySkipAnimationBtn" class="btn-shop py-3 px-6 rounded-lg font-bold text-gray-200 shadow-md border-2 border-gray-600">⏩ Skip Animations (500 coins)</button>` : ''}
+                ${!autoRollAvailable ? `<button onclick="buyAutoRollFeature(2000)" id="buyAutoRollFeatureBtn" class="btn-shop py-3 px-6 rounded-lg font-bold text-gray-200 shadow-md border-2 border-gray-600">🤖 Unlock Auto Roll (2000 coins)</button>` : ''}
+                ${autoRollAvailable && autoRollDelay > 1500 ? `<button onclick="buyAutoRollSpeed(1000)" id="buyAutoRollSpeedBtn1" class="btn-shop py-3 px-6 rounded-lg font-bold text-gray-200 shadow-md border-2 border-gray-600">⚡ Faster Auto Roll (1000 coins)</button>` : ''}
+                ${autoRollAvailable && autoRollDelay > 500 ? `<button onclick="buyAutoRollSpeed(2000)" id="buyAutoRollSpeedBtn2" class="btn-shop py-3 px-6 rounded-lg font-bold text-gray-200 shadow-md border-2 border-gray-600">🔥🔥 Max Auto Roll Speed (2000 coins)</button>` : ''}
+            `;
+            area.classList.remove("hidden"); // Ensure shop area is visible
+            area.style.display = "grid"; // Make sure it shows as grid
+        }
+
+        /**
+         * Buys an upgrade for the coin generation rate.
+         * @param {number} add - The amount to add to the coin rate.
+         * @param {number} cost - The coin cost of the upgrade.
+         */
+        function buyRate(add, cost) {
+            if (coins < cost) {
+                log("❌ Not enough coins for coin rate upgrade.");
+                // Attempt to unlock Sad Waifu if not already unlocked
+                if (!collection.some(c => c.id === sadWaifu.id)) {
+                    unlockSadWaifu();
+                }
+                return;
+            }
+            coins -= cost;
+            coinRate += add;
+            updateStats();
+            log(`⚙️ Coin/sec boosted by +${add}!`);
+            saveGame(); // Save after buying upgrade
+        }
+
+        /**
+         * Buys an upgrade for the lucky roll chance.
+         * @param {number} newChance - The new denominator for the luck chance (e.g., 50 for 1/50).
+         * @param {number} cost - The coin cost of the upgrade.
+         */
+        function buyLuck(newChance, cost) {
+            if (coins < cost) {
+                log("❌ Not enough coins for Lucky Roll upgrade.");
+                // Attempt to unlock Sad Waifu if not already unlocked
+                if (!collection.some(c => c.id === sadWaifu.id)) {
+                    unlockSadWaifu();
+                }
+                return;
+            }
+            // Ensure the new chance is actually an improvement (lower denominator means better luck)
+            if (newChance >= luckChance) {
+                log("⚠️ Already have equal or better Lucky Roll.");
+                return;
+            }
+            coins -= cost;
+            luckChance = newChance;
+            updateStats();
+            log(`🍀 Lucky Roll upgraded to 1/${newChance}`);
+            saveGame(); // Save after buying upgrade
+        }
+
+        /**
+         * Buys the "Skip Animation" upgrade.
+         * @param {number} cost - The coin cost of the upgrade.
+         */
+        function buySkipAnimation(cost) {
+            if (coins < cost) {
+                log("❌ Not enough coins for Skip Animation upgrade.");
+                // Attempt to unlock Sad Waifu if not already unlocked
+                if (!collection.some(c => c.id === sadWaifu.id)) {
+                    unlockSadWaifu();
+                }
+                return;
+            }
+            if (skipAnimation) {
+                log("⚠️ Animations are already skipped!");
+                return;
+            }
+            coins -= cost;
+            skipAnimation = true;
+            updateStats();
+            log(`⏩ Animations will now be skipped!`);
+            // Re-render shop to hide the button
+            openShop();
+            saveGame(); // Save after buying upgrade
+        }
+
+        /**
+         * Buys the "Unlock Auto Roll" feature.
+         * @param {number} cost - The coin cost of the upgrade.
+         */
+        function buyAutoRollFeature(cost) {
+            if (coins < cost) {
+                log("❌ Not enough coins to unlock Auto Roll.");
+                // Attempt to unlock Sad Waifu if not already unlocked
+                if (!collection.some(c => c.id === sadWaifu.id)) {
+                    unlockSadWaifu();
+                }
+                return;
+            }
+            if (autoRollAvailable) {
+                log("⚠️ Auto Roll is already unlocked!");
+                return;
+            }
+            coins -= cost;
+            autoRollAvailable = true;
+            updateStats();
+            log(`🤖 Auto Roll feature unlocked!`);
+            // Re-render shop to hide the button
+            openShop();
+            saveGame(); // Save after buying upgrade
+        }
+
+        /**
+         * Buys an upgrade to make auto-roll faster.
+         * @param {number} cost - The coin cost of the upgrade.
+         */
+        function buyAutoRollSpeed(cost) {
+            let newDelay;
+            if (autoRollDelay === 3000) { // First speed upgrade
+                newDelay = 1500;
+            } else if (autoRollDelay === 1500) { // Second (max) speed upgrade
+                newDelay = 500;
+            } else { // Already max speed
+                log("⚠️ Auto Roll speed is already at max!");
+                return;
+            }
+
+            if (coins < cost) {
+                log("❌ Not enough coins for Auto Roll speed upgrade.");
+                // Attempt to unlock Sad Waifu if not already unlocked
+                if (!collection.some(c => c.id === sadWaifu.id)) {
+                    unlockSadWaifu();
+                }
+                return;
+            }
+            
+            coins -= cost;
+            autoRollDelay = newDelay;
+            updateStats();
+            log(`⚡ Auto Roll speed upgraded to ${autoRollDelay / 1000}s interval!`);
+            // Update auto roll status if active
+            if (autoRollActive) {
+                stopAutoRoll();
+                startAutoRoll();
+                document.getElementById("autoRollStatus").textContent = `Auto Roll: Active (Rolling from ${currentAutoRollPack} every ${autoRollDelay / 1000}s)`;
+            }
+            // Re-render shop to hide the button
+            openShop();
+            saveGame(); // Save after buying upgrade
+        }
+
+
+        /**
+         * Opens the redeem code input area.
+         */
+        function openRedeemCode() {
+            log("🔑 Enter your redemption code below!");
+            // Hide other areas if open
+            document.getElementById("shopArea").innerHTML = "";
+            document.getElementById("shopArea").classList.add("hidden");
+            document.getElementById("packChecklistsArea").classList.add("hidden");
+            document.getElementById("autoRollArea").classList.add("hidden"); // Hide auto roll area
+            document.getElementById("tierUnlockArea").classList.add("hidden"); // Hide tier unlock area
+            document.getElementById("specialCharacterUnlockArea").classList.add("hidden"); // Hide special character unlock area
+
+
+            const redeemArea = document.getElementById("redeemCodeArea");
+            redeemArea.classList.remove("hidden");
+            document.getElementById("codeInput").value = ""; // Clear previous input
+        }
+
+        /**
+         * Processes the entered code for redemption.
+         */
+        async function redeemCode() {
+            const codeInput = document.getElementById("codeInput").value.trim();
+
+            if (redeemedCodes.has(codeInput)) {
+                log(`⚠️ Code "${codeInput}" already redeemed!`);
+                return;
+            }
+
+            switch (codeInput) {
+                case "AnimeWaifu":
+                    coins += 100; // Updated to 100 coins
+                    log(`🎉 Code "AnimeWaifu" redeemed! You received 100 coins!`);
+                    redeemedCodes.add(codeInput);
+                    break;
+                case "SkyWaifus":
+                    coins += 500; // Updated to 500 coins
+                    log(`🎉 Code "SkyWaifus" redeemed! You received 500 coins and found a special character!`);
+                    // Add Waifu of Sun to collection
+                    collection.push({ ...waifuOfSun, uniqueCollectionId: `${waifuOfSun.id}-${Date.now()}-${Math.random()}` });
+                    redeemedCodes.add(codeInput);
+                    await animateSummonedCharacter(waifuOfSun); // Animate the special character
+                    break;
+                case "Zenless Zone Zero":
+                case "/free waifu":
+                    unlockWaifuOfGaming(); // Unlock Waifu of Gaming
+                    redeemedCodes.add(codeInput); // Mark code as redeemed
+                    break;
+                default:
+                    log(`❌ Invalid code: "${codeInput}"`);
+            }
+            updateStats();
+            renderPackChecklists(); // Update checklists as new characters might be added
+            checkWaifuOfMoonEligibility(); // Check after code redemption
+            checkWaifuOfWaterEligibility(); // Check Waifu of Water eligibility
+            checkChefWaifuEligibility(); // Check Chef Waifu eligibility
+            checkRichWaifuEligibility(); // Check Rich Waifu eligibility
+            document.getElementById("codeInput").value = ""; // Clear input after redemption attempt
+            saveGame(); // Save after redeeming code
+        }
+
+        /**
+         * Toggles the visibility of the pack checklists area and renders them if visible.
+         */
+        function togglePackChecklists() {
+            const checklistArea = document.getElementById("packChecklistsArea");
+            // Hide other areas if open
+            document.getElementById("shopArea").innerHTML = "";
+            document.getElementById("shopArea").classList.add("hidden");
+            document.getElementById("redeemCodeArea").classList.add("hidden");
+            document.getElementById("autoRollArea").classList.add("hidden"); // Hide auto roll area
+            document.getElementById("tierUnlockArea").classList.add("hidden"); // Hide tier unlock area
+            document.getElementById("specialCharacterUnlockArea").classList.add("hidden"); // Hide special character unlock area
+
+
+            if (checklistArea.classList.contains("hidden")) {
+                checklistArea.classList.remove("hidden");
+                renderPackChecklists();
+                log("📋 Pack Checklists Loaded!");
+            } else {
+                checklistArea.classList.add("hidden");
+                log("📝 Welcome to Roll Em' All!"); // Reset log message
+            }
+        }
+
+        /**
+         * Renders (or re-renders) the checklists for all packs.
+         */
+        function renderPackChecklists() {
+            const checklistArea = document.getElementById("packChecklistsArea");
+            checklistArea.innerHTML = ''; // Clear previous content
+
+            // Create a Set of collected character names for efficient lookup
+            const collectedNamesSet = new Set(collection.map(c => c.name));
+            console.log("DEBUG: Collected Names Set for checklist:", Array.from(collectedNamesSet)); // Log for checklist
+
+            for (const packName in allPacks) {
+                // If Tier II is not unlocked, skip Tier II packs in the checklist
+                if (currentTier === 1 && !tier1Packs.some(p => p === allPacks[packName])) {
+                    continue; // Skip rendering Tier II packs if not unlocked
+                }
+
+                const pack = allPacks[packName];
+                const packSection = document.createElement('div');
+                packSection.className = 'pack-section';
+
+                // Filter out exclusive characters that are not part of a pack's standard collection
+                const countableChars = pack.filter(char => !char.exclusive);
+                const collectedCount = countableChars.filter(char => collectedNamesSet.has(char.name)).length;
+
+                const packHeader = document.createElement('h3');
+                packHeader.innerHTML = `${packName} Pack (${collectedCount}/${countableChars.length}) <span class="toggle-icon">▼</span>`;
+                packHeader.onclick = function() {
+                    const content = this.nextElementSibling;
+                    content.classList.toggle('active');
+                    this.querySelector('.toggle-icon').textContent = content.classList.contains('active') ? '▲' : '▼';
+                };
+                packSection.appendChild(packHeader);
+
+                const packContent = document.createElement('div');
+                packContent.className = 'pack-content';
+
+                countableChars.forEach(char => { // Iterate only over countable characters for checklist
+                    const collected = collectedNamesSet.has(char.name); // Check if the character name is in the collected set
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = `checklist-item ${collected ? 'collected' : ''}`;
+                    itemDiv.innerHTML = `
+                        <span class="checklist-icon">${collected ? '✔️' : '⬜'}</span>
+                        ${char.icon} ${char.name} [${char.rarity}]
+                    `;
+                    packContent.appendChild(itemDiv);
+                });
+
+                packSection.appendChild(packContent);
+                checklistArea.appendChild(packSection);
+            }
+
+            // Also add exclusive characters checklist entries if not already collected
+            const exclusiveCharsSection = document.createElement('div');
+            exclusiveCharsSection.className = 'pack-section';
+            const exclusiveHeader = document.createElement('h3');
+            exclusiveHeader.innerHTML = `Special Characters <span class="toggle-icon">▼</span>`;
+            exclusiveHeader.onclick = function() {
+                const content = this.nextElementSibling;
+                content.classList.toggle('active');
+                this.querySelector('.toggle-icon').textContent = content.classList.contains('active') ? '▲' : '▼';
+            };
+            exclusiveCharsSection.appendChild(exclusiveHeader);
+            const exclusiveContent = document.createElement('div');
+            exclusiveContent.className = 'pack-content';
+
+            const exclusiveCharacters = [waifuOfSun, waifuOfMoon, waifuOfGaming, waifuOfWater, chefWaifu, sadWaifu, richWaifu]; // Added new special characters
+            exclusiveCharacters.forEach(char => {
+                const collected = collectedNamesSet.has(char.name);
+                const itemDiv = document.createElement('div');
+                itemDiv.className = `checklist-item ${collected ? 'collected' : ''}`;
+                itemDiv.innerHTML = `
+                    <span class="checklist-icon">${collected ? '✔️' : '⬜'}</span>
+                    ${char.icon} ${char.name} [${char.rarity}]
+                `;
+                exclusiveContent.appendChild(itemDiv);
+            });
+
+            exclusiveCharsSection.appendChild(exclusiveContent);
+            checklistArea.appendChild(exclusiveCharsSection);
+        }
+
+        /**
+         * Opens the auto-roll controls area.
+         */
+        function openAutoRollControls() {
+            if (!autoRollAvailable) {
+                log("❌ Auto Roll is not yet unlocked! Buy it in the shop.");
+                return;
+            }
+
+            log("⚙️ Auto Roll Settings: Choose your pack!");
+            // Hide other areas if open
+            document.getElementById("shopArea").innerHTML = "";
+            document.getElementById("shopArea").classList.add("hidden");
+            document.getElementById("redeemCodeArea").classList.add("hidden");
+            document.getElementById("packChecklistsArea").classList.add("hidden");
+            document.getElementById("tierUnlockArea").classList.add("hidden"); // Hide tier unlock area
+            document.getElementById("specialCharacterUnlockArea").classList.add("hidden"); // Hide special character unlock area
+
+
+            const autoRollArea = document.getElementById("autoRollArea");
+            autoRollArea.classList.remove("hidden");
+
+            // Populate the pack selection dropdown
+            const selectElement = document.getElementById("autoRollPackSelect");
+            selectElement.innerHTML = '<option value="">-- Select a Pack --</option>'; // Clear existing options
+            for (const packKey in allPacks) {
+                // Only add packs to auto-roll dropdown if they are unlocked (Tier I always, Tier II if unlocked)
+                if (currentTier === 2 || tier1Packs.some(p => p === allPacks[packKey])) {
+                    const option = document.createElement('option');
+                    option.value = packKey;
+                    option.textContent = packKey;
+                    selectElement.appendChild(option);
+                }
+            }
+            // Set selected option if auto-roll is active
+            if (currentAutoRollPack) {
+                selectElement.value = currentAutoRollPack;
+            }
+            // Update button text and status
+            const toggleBtn = document.getElementById("toggleAutoRollBtn");
+            const statusText = document.getElementById("autoRollStatus");
+            if (autoRollActive) {
+                toggleBtn.textContent = "Stop Auto Roll";
+                statusText.textContent = `Auto Roll: Active (Rolling from ${currentAutoRollPack} every ${autoRollDelay / 1000}s)`;
+            } else {
+                toggleBtn.textContent = "Start Auto Roll";
+                statusText.textContent = "Auto Roll: Inactive";
+            }
+        }
+
+        /**
+         * Sets the currently selected pack for auto-rolling.
+         * @param {string} packName - The name of the pack to select.
+         */
+        function selectAutoRollPack(packName) {
+            currentAutoRollPack = packName;
+            log(`Auto Roll pack set to: ${packName}`);
+            // If auto-roll is active, restart it with the new pack
+            if (autoRollActive) {
+                stopAutoRoll();
+                startAutoRoll();
+                document.getElementById("autoRollStatus").textContent = `Auto Roll: Active (Rolling from ${currentAutoRollPack} every ${autoRollDelay / 1000}s)`;
+            }
+            saveGame(); // Save after changing auto-roll pack
+        }
+
+        /**
+         * Toggles the auto-roll feature on or off.
+         */
+        function toggleAutoRoll() {
+            const toggleBtn = document.getElementById("toggleAutoRollBtn");
+            const statusText = document.getElementById("autoRollStatus");
+
+            if (autoRollActive) {
+                stopAutoRoll();
+                statusText.textContent = "Auto Roll: Inactive";
+                toggleBtn.textContent = "Start Auto Roll";
+            } else {
+                if (!currentAutoRollPack) {
+                    log("❌ Please select a pack for Auto Roll.");
+                    return;
+                }
+                startAutoRoll();
+                statusText.textContent = `Auto Roll: Active (Rolling from ${currentAutoRollPack} every ${autoRollDelay / 1000}s)`;
+                toggleBtn.textContent = "Start Auto Roll";
+            }
+            saveGame(); // Save after toggling auto-roll
+        }
+
+        /**
+         * Starts the auto-roll interval.
+         */
+        function startAutoRoll() {
+            if (autoRollInterval) {
+                clearInterval(autoRollInterval);
+            }
+            autoRollActive = true;
+            autoRollInterval = setInterval(() => {
+                // Ensure the pack exists before summoning
+                if (allPacks[currentAutoRollPack]) {
+                    summonPack(allPacks[currentAutoRollPack], getPackCost(currentAutoRollPack), currentAutoRollPack);
+                } else {
+                    stopAutoRoll();
+                    log("❌ Auto Roll pack not found or invalid. Stopping auto roll.");
+                }
+            }, autoRollDelay);
+        }
+
+        /**
+         * Stops the auto-roll interval.
+         */
+        function stopAutoRoll() {
+            if (autoRollInterval) {
+                clearInterval(autoRollInterval);
+                autoRollInterval = null;
+            }
+            autoRollActive = false;
+        }
+
+        /**
+         * Displays the credits modal.
+         */
+        function showCredits() {
+            // Hide other game areas if they are open
+            document.getElementById("shopArea").innerHTML = "";
+            document.getElementById("shopArea").classList.add("hidden");
+            document.getElementById("redeemCodeArea").classList.add("hidden");
+            document.getElementById("packChecklistsArea").classList.add("hidden");
+            document.getElementById("autoRollArea").classList.add("hidden");
+            document.getElementById("tierUnlockArea").classList.add("hidden");
+            document.getElementById("specialCharacterUnlockArea").classList.add("hidden");
+
+            // Use direct style manipulation for more robust control
+            document.getElementById("creditsModal").style.display = "flex";
+            log("📄 Game Credits");
+        }
+
+        /**
+         * Hides the credits modal.
+         */
+        function hideCredits() {
+            // Use direct style manipulation for more robust control
+            document.getElementById("creditsModal").style.display = "none";
+            log("📝 Welcome to Roll Em' All!"); // Reset log message
+        }
+
+        // Initial setup on page load
+        function initializeGame() {
+            loadGame(); // Load game state first
+            updateStats();
+            renderPackChecklists();
+            checkTierUpgradeEligibility(); // Check and potentially show Tier II unlock button on load
+            checkWaifuOfMoonEligibility(); // Check and potentially show Waifu of Moon unlock button on load
+            checkWaifuOfGamingPlayTimeUnlock(); // Check for playtime unlock on load
+            checkWaifuOfWaterEligibility(); // Check Waifu of Water eligibility
+            checkChefWaifuEligibility(); // Check Chef Waifu eligibility
+            checkRichWaifuEligibility(); // Check Rich Waifu eligibility
+            // Hide Tier II summon buttons initially if not unlocked
+            if (currentTier === 1) {
+                document.getElementById("tier2SummonButtons").classList.add("hidden");
+            } else {
+                document.getElementById("tier2SummonButtons").classList.remove("hidden");
+            }
+            // Ensure credits modal is hidden on load
+            document.getElementById("creditsModal").style.display = "none";
+        }
+
+        window.onload = initializeGame;
+    </script>
+
+</body>
+</html>

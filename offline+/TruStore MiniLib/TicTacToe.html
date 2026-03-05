@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tic-Tac-Toe</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif; /* Using Inter font */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f0f0f0;
+            margin: 0;
+            transition: background-color 0.3s ease; /* Smooth transition for dark mode */
+            overflow: hidden; /* Prevent scrollbars */
+        }
+
+        /* Dark mode styles */
+        body.dark-mode {
+            background-color: #222;
+            color: #eee;
+        }
+
+        .game-container {
+            background-color: #fff;
+            border-radius: 12px; /* More rounded corners */
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); /* Stronger shadow */
+            padding: 30px;
+            text-align: center;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Smooth transition */
+            max-width: 90%; /* Responsive width */
+        }
+
+        body.dark-mode .game-container {
+            background-color: #333;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 25px;
+            font-size: 2.5em; /* Larger title */
+        }
+
+        body.dark-mode h1 {
+            color: #eee;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 8px; /* Slightly larger gap */
+            margin: 0 auto;
+            width: 316px; /* (3*100px) + (2*8px) = 316px */
+            height: 316px; /* (3*100px) + (2*8px) = 316px */
+            border: 2px solid #ccc;
+            border-radius: 8px; /* Rounded board corners */
+            overflow: hidden; /* Ensure rounded corners clip content */
+            position: relative; /* Needed for absolute positioning of winning line */
+        }
+
+        body.dark-mode .board {
+            border-color: #555;
+        }
+
+        .cell {
+            width: 100px;
+            height: 100px;
+            background-color: #eee;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3.5em; /* Larger font for X/O */
+            font-weight: bold;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+            border-radius: 4px; /* Rounded cell corners */
+            transition: background-color 0.2s ease; /* Smooth hover */
+        }
+
+        body.dark-mode .cell {
+            background-color: #444;
+            border-color: #555;
+            color: #ccc; /* Default for dark mode cells */
+        }
+
+        .cell:hover {
+            background-color: #ddd;
+        }
+
+        body.dark-mode .cell:hover {
+            background-color: #555;
+        }
+
+        .cell:active {
+            transform: translateY(1px); /* Simple click effect */
+        }
+
+        /* Player X and O colors */
+        .cell-x {
+            color: #007bff; /* Blue for X */
+        }
+
+        .cell-o {
+            color: #dc3545; /* Red for O */
+        }
+
+        /* Dark mode player colors */
+        body.dark-mode .cell-x {
+            color: #61dafb; /* Lighter blue for X in dark mode */
+        }
+
+        body.dark-mode .cell-o {
+            color: #ff6347; /* Lighter red for O in dark mode */
+        }
+
+        .status {
+            margin-top: 25px;
+            font-size: 1.4em; /* Larger status text */
+            color: #555;
+            min-height: 1.4em; /* Prevent layout shift */
+        }
+
+        body.dark-mode .status {
+            color: #bbb;
+        }
+
+        .controls {
+            margin-top: 25px;
+            display: flex;
+            flex-wrap: wrap; /* Allow buttons to wrap on smaller screens */
+            justify-content: center;
+            gap: 15px; /* Space between buttons */
+        }
+
+        button {
+            padding: 12px 25px; /* More padding */
+            font-size: 1.1em; /* Larger font for buttons */
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px; /* More rounded button corners */
+            box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3); /* Button shadow */
+            transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+            transform: translateY(-1px); /* Lift effect on hover */
+            box-shadow: 0 4px 8px rgba(0, 123, 255, 0.4);
+        }
+
+        button:active {
+            transform: translateY(1px); /* Press effect on click */
+        }
+
+        body.dark-mode button {
+            background-color: #6a1b9a; /* Dark mode button color */
+            box-shadow: 0 2px 4px rgba(106, 27, 154, 0.3);
+        }
+
+        body.dark-mode button:hover {
+            background-color: #4a148c;
+            box-shadow: 0 4px 8px rgba(106, 27, 154, 0.4);
+        }
+
+        /* Winning line styles */
+        .winning-line {
+            position: absolute;
+            background-color: rgba(255, 0, 0, 0.7); /* Red line, semi-transparent by default */
+            height: 8px; /* Thickness of the line */
+            border-radius: 4px;
+            display: none; /* Hidden by default */
+            transition: all 0.3s ease; /* Smooth transition for line appearance */
+            z-index: 10; /* Ensure it's above cells */
+            transform-origin: center center; /* Default origin for rotation */
+        }
+
+        body.dark-mode .winning-line {
+            background-color: rgba(0, 255, 0, 0.7); /* Green line in dark mode */
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 400px) {
+            .board {
+                grid-template-columns: repeat(3, 80px);
+                grid-template-rows: repeat(3, 80px);
+                gap: 5px;
+                width: 250px; /* 3*80 + 2*5 */
+                height: 250px;
+            }
+
+            .cell {
+                width: 80px;
+                height: 80px;
+                font-size: 3em;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .status {
+                font-size: 1.1em;
+            }
+
+            button {
+                font-size: 0.9em;
+                padding: 10px 20px;
+            }
+
+            /* Adjust winning line length for smaller screens */
+            .winning-line {
+                /*
+                Need to adjust width/length for smaller screens if board size changes.
+                For simplicity, we'll keep the length as a percentage or recalculate
+                based on actual board width in JS. For now, it will adapt
+                because board is scaled by grid.
+                */
+            }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="game-container">
+        <h1>Tic-Tac-Toe</h1>
+        <div class="board" id="gameBoard">
+            <!-- Cells will be created dynamically by JavaScript -->
+            <div id="winningLine" class="winning-line"></div> <!-- Winning line element -->
+        </div>
+        <div class="status" id="gameStatus">Player X's Turn</div>
+        <div class="controls">
+            <button id="resetButton">Reset Game</button>
+            <button id="darkModeToggle">Toggle Dark Mode</button>
+        </div>
+    </div>
+
+    <script>
+        const board = document.getElementById('gameBoard');
+        const statusDisplay = document.getElementById('gameStatus');
+        const resetButton = document.getElementById('resetButton');
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const winningLine = document.getElementById('winningLine'); // Get the winning line element
+
+        let gameActive = true;
+        let currentPlayer = 'X';
+        let gameState = ['', '', '', '', '', '', '', '', '']; // Represents the 9 cells
+
+        const winningConditions = [
+            [0, 1, 2], // Row 1
+            [3, 4, 5], // Row 2
+            [6, 7, 8], // Row 3
+            [0, 3, 6], // Column 1
+            [1, 4, 7], // Column 2
+            [2, 5, 8], // Column 3
+            [0, 4, 8], // Diagonal from top-left
+            [2, 4, 6]  // Diagonal from top-right
+        ];
+
+        // Function to set the theme based on localStorage or default to light
+        function setTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-mode');
+            } else {
+                document.body.classList.remove('dark-mode');
+            }
+        }
+
+        function initializeGame() {
+            board.innerHTML = ''; // Clear existing cells
+            gameState = ['', '', '', '', '', '', '', '', ''];
+            gameActive = true;
+            currentPlayer = 'X';
+            statusDisplay.textContent = `Player ${currentPlayer}'s Turn`;
+            winningLine.style.display = 'none'; // Hide the winning line
+
+            // Re-append the winning line element to ensure it's always the last child (on top)
+            board.appendChild(winningLine);
+
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.dataset.cellIndex = i;
+                // Remove previous player classes if they exist (important for reset)
+                cell.classList.remove('cell-x', 'cell-o');
+                cell.addEventListener('click', handleCellClick);
+                board.appendChild(cell);
+            }
+        }
+
+        function handleCellClick(event) {
+            const clickedCell = event.target;
+            const clickedCellIndex = parseInt(clickedCell.dataset.cellIndex);
+
+            // If the cell is already filled or game is not active, do nothing
+            if (gameState[clickedCellIndex] !== '' || !gameActive) {
+                return;
+            }
+
+            // Update game state and display the player's mark
+            gameState[clickedCellIndex] = currentPlayer;
+            clickedCell.textContent = currentPlayer;
+
+            // Add class for player color
+            if (currentPlayer === 'X') {
+                clickedCell.classList.add('cell-x');
+            } else {
+                clickedCell.classList.add('cell-o');
+            }
+
+            handleResultValidation();
+        }
+
+        function handleResultValidation() {
+            let roundWon = false;
+            let winningCondition = null; // To store the winning condition for the line
+
+            for (let i = 0; i < winningConditions.length; i++) {
+                const currentWinCondition = winningConditions[i];
+                let a = gameState[currentWinCondition[0]];
+                let b = gameState[currentWinCondition[1]];
+                let c = gameState[currentWinCondition[2]];
+
+                // If any cell in the winning condition is empty, continue to next condition
+                if (a === '' || b === '' || c === '') {
+                    continue;
+                }
+                // Check if all three cells match
+                if (a === b && b === c) {
+                    roundWon = true;
+                    winningCondition = currentWinCondition; // Store the winning condition
+                    break;
+                }
+            }
+
+            if (roundWon) {
+                statusDisplay.textContent = `Player ${currentPlayer} Wins!`;
+                gameActive = false;
+                drawWinningLine(winningCondition); // Draw the line
+                return;
+            }
+
+            // Check for a draw (if no empty cells and no winner)
+            let roundDraw = !gameState.includes('');
+            if (roundDraw) {
+                statusDisplay.textContent = `It's a Draw!`;
+                gameActive = false;
+                return;
+            }
+
+            // If no win and no draw, change player
+            changePlayer();
+        }
+
+        // Function to draw the winning line
+        function drawWinningLine(winCondition) {
+            winningLine.style.display = 'block';
+            const boardWidth = board.offsetWidth; // Get current board width (316px)
+            const cellSize = 100; // Original cell size
+            const gap = 8; // Original gap size
+
+            // Calculate base unit for position
+            const unit = cellSize + gap; // 108px
+
+            let top, left, width, rotation;
+
+            // Determine line properties based on the winning condition
+            if (winCondition[0] === 0 && winCondition[1] === 1 && winCondition[2] === 2) { // Top Row
+                top = (cellSize / 2) - (winningLine.offsetHeight / 2);
+                left = 0;
+                width = boardWidth;
+                rotation = 0;
+            } else if (winCondition[0] === 3 && winCondition[1] === 4 && winCondition[2] === 5) { // Middle Row
+                top = unit + (cellSize / 2) - (winningLine.offsetHeight / 2);
+                left = 0;
+                width = boardWidth;
+                rotation = 0;
+            } else if (winCondition[0] === 6 && winCondition[1] === 7 && winCondition[2] === 8) { // Bottom Row
+                top = (2 * unit) + (cellSize / 2) - (winningLine.offsetHeight / 2);
+                left = 0;
+                width = boardWidth;
+                rotation = 0;
+            } else if (winCondition[0] === 0 && winCondition[1] === 3 && winCondition[2] === 6) { // Left Column
+                top = 0;
+                left = (cellSize / 2) - (winningLine.offsetHeight / 2);
+                width = boardWidth; /* Line length for rotation */
+                rotation = 90;
+            } else if (winCondition[0] === 1 && winCondition[1] === 4 && winCondition[2] === 7) { // Middle Column
+                top = 0;
+                left = unit + (cellSize / 2) - (winningLine.offsetHeight / 2);
+                width = boardWidth; /* Line length for rotation */
+                rotation = 90;
+            } else if (winCondition[0] === 2 && winCondition[1] === 5 && winCondition[2] === 8) { // Right Column
+                top = 0;
+                left = (2 * unit) + (cellSize / 2) - (winningLine.offsetHeight / 2);
+                width = boardWidth; /* Line length for rotation */
+                rotation = 90;
+            } else if (winCondition[0] === 0 && winCondition[1] === 4 && winCondition[2] === 8) { // Diagonal Top-Left to Bottom-Right
+                // Diagonal length = sqrt(boardWidth^2 + boardHeight^2)
+                width = Math.sqrt(boardWidth * boardWidth + boardWidth * boardWidth);
+                top = (boardWidth / 2) - (winningLine.offsetHeight / 2); // Center of board vertically
+                left = (boardWidth / 2) - (width / 2); // Center of board horizontally relative to line start
+                rotation = 45;
+            } else if (winCondition[0] === 2 && winCondition[1] === 4 && winCondition[2] === 6) { // Diagonal Top-Right to Bottom-Left
+                width = Math.sqrt(boardWidth * boardWidth + boardWidth * boardWidth);
+                top = (boardWidth / 2) - (winningLine.offsetHeight / 2); // Center of board vertically
+                left = (boardWidth / 2) - (width / 2); // Center of board horizontally relative to line start
+                rotation = -45;
+            }
+
+            // Apply styles
+            winningLine.style.width = `${width}px`;
+            winningLine.style.top = `${top}px`;
+            winningLine.style.left = `${left}px`;
+            winningLine.style.transform = `rotate(${rotation}deg)`;
+
+            // Adjust transform origin for diagonals if not using center
+            if (rotation === 45) {
+                winningLine.style.transformOrigin = `0% 50%`; // Rotate around left middle for +45
+            } else if (rotation === -45) {
+                winningLine.style.transformOrigin = `100% 50%`; // Rotate around right middle for -45
+            } else if (rotation === 90) {
+                winningLine.style.transformOrigin = `top left`; // Rotate around top left for vertical
+                // Adjust left for vertical lines, as the line starts at 'top 0' but rotates 'left'
+                winningLine.style.left = `${left + winningLine.offsetHeight / 2}px`; // Adjust by half thickness
+                winningLine.style.top = `${top - winningLine.offsetHeight / 2}px`; // Adjust by half thickness
+            } else {
+                winningLine.style.transformOrigin = `center center`; // Default for horizontal
+            }
+        }
+
+
+        function changePlayer() {
+            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+            statusDisplay.textContent = `Player ${currentPlayer}'s Turn`;
+        }
+
+        // Resets the game to its initial state
+        function resetGame() {
+            initializeGame();
+        }
+
+        // Toggles the dark mode on and off
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            // Save theme preference to localStorage
+            if (document.body.classList.contains('dark-mode')) {
+                localStorage.setItem('theme', 'dark');
+            } else {
+                localStorage.setItem('theme', 'light');
+            }
+        }
+
+        // Event listeners for buttons
+        resetButton.addEventListener('click', resetGame);
+        darkModeToggle.addEventListener('click', toggleDarkMode);
+
+        // Initialize the game and set theme when the page loads
+        setTheme(); // Apply saved theme on load
+        initializeGame(); // Set up the game board
+    </script>
+</body>
+</html>

@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Match</title>
+    <style>
+        /* Define CSS variables for colors in light mode */
+        :root {
+            --bg-color: #f0f0f0;
+            --text-color: #333;
+            --board-bg-color: #fff;
+            --tile-back-color: #007BFF; /* Blue */
+            --tile-front-color: #4CAF50; /* Green */
+            --tile-matched-color: #5cb85c; /* Lighter green for matched */
+            --button-bg-color: #007BFF;
+            --button-hover-bg-color: #0056b3;
+            --box-shadow-color: rgba(0, 0, 0, 0.1);
+            --box-shadow-color-strong: rgba(0, 0, 0, 0.2);
+            --message-box-border: rgba(0,0,0,0.1);
+        }
+
+        /* Dark mode specific variables */
+        body.dark-mode {
+            --bg-color: #1a1a2e; /* Darker background */
+            --text-color: #e0e0e0;
+            --board-bg-color: #2e2e4e; /* Darker board */
+            --tile-back-color: #3c3c6c; /* Darker blue/purple */
+            --tile-front-color: #880E4F; /* Deep pink/purple */
+            --tile-matched-color: #D81B60; /* Vibrant pink for matched */
+            --button-bg-color: #6a1b9a; /* Deep purple */
+            --button-hover-bg-color: #4a148c; /* Darker purple */
+            --box-shadow-color: rgba(0, 0, 0, 0.4);
+            --box-shadow-color-strong: rgba(0, 0, 0, 0.6);
+            --message-box-border: rgba(255,255,255,0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif; /* Using Inter font */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0; /* Remove default body margin */
+            min-height: 100vh; /* Ensure body takes full height */
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.5s ease, color 0.5s ease; /* Smooth transition for theme change */
+            box-sizing: border-box; /* Include padding in element's total width and height */
+        }
+
+        h1 {
+            color: var(--text-color);
+            margin-bottom: 20px;
+        }
+
+        .game-board {
+            display: grid;
+            /* grid-template-columns will be set dynamically by JavaScript */
+            grid-gap: 10px;
+            padding: 20px;
+            background-color: var(--board-bg-color);
+            border-radius: 12px; /* More rounded corners */
+            box-shadow: 0 4px 15px var(--box-shadow-color); /* Enhanced shadow */
+            max-width: 90vw; /* Responsive width */
+            justify-content: center; /* Center grid items */
+        }
+
+        .tile {
+            width: 100px;
+            height: 100px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.2em; /* Slightly larger font */
+            cursor: pointer;
+            border-radius: 10px; /* Rounded corners for tiles */
+            transform-style: preserve-3d; /* Enable 3D transformation for flip effect */
+            transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Springy transition for flip */
+            position: relative; /* Needed for front/back positioning */
+        }
+
+        .tile.flipped {
+            transform: rotateY(180deg); /* Flip animation */
+        }
+
+        .tile .front,
+        .tile .back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden; /* Hide the back of the element when facing away */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 10px;
+            box-shadow: inset 0 0 5px var(--box-shadow-color); /* Subtle inner shadow */
+        }
+
+        .tile .front {
+            background-color: var(--tile-front-color); /* Color for the front of the tile (hidden content) */
+            color: white;
+            transform: rotateY(180deg); /* Initial state of the front face (flipped) */
+        }
+
+        .tile .back {
+            background-color: var(--tile-back-color); /* Color for the back of the tile (unflipped) */
+            color: white;
+        }
+
+        .tile.matched .front {
+            background-color: var(--tile-matched-color); /* Different color for matched tiles */
+            box-shadow: inset 0 0 8px var(--box-shadow-color-strong); /* More pronounced shadow for matched */
+        }
+
+        .controls {
+            margin-top: 30px;
+            display: flex;
+            flex-wrap: wrap; /* Allow buttons to wrap on smaller screens */
+            gap: 15px; /* Space between buttons */
+            justify-content: center; /* Center buttons */
+        }
+
+        button {
+            padding: 12px 25px; /* More padding for bigger buttons */
+            font-size: 1.1em;
+            background-color: var(--button-bg-color);
+            color: white;
+            border: none;
+            border-radius: 8px; /* Rounded buttons */
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease; /* Smooth transition for hover/active */
+            box-shadow: 0 4px 8px var(--box-shadow-color); /* Button shadow */
+        }
+
+        button:hover {
+            background-color: var(--button-hover-bg-color);
+            transform: translateY(-2px); /* Slight lift on hover */
+        }
+
+        button:active {
+            transform: translateY(0); /* Press effect */
+            box-shadow: 0 2px 4px var(--box-shadow-color-strong);
+        }
+
+        /* Message box styling */
+        .message-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: var(--board-bg-color);
+            color: var(--text-color);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px var(--box-shadow-color-strong);
+            text-align: center;
+            z-index: 1000;
+            font-size: 1.3em;
+            display: none; /* Hidden by default */
+            border: 1px solid var(--message-box-border);
+            max-width: 80%; /* Responsive width for message box */
+        }
+
+        .message-box button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 1em;
+        }
+
+        /* Responsive adjustments for smaller screens */
+        @media (max-width: 600px) {
+            .game-board {
+                grid-template-columns: repeat(3, 90px); /* Adjust for smaller screens */
+                grid-gap: 8px;
+                padding: 15px;
+            }
+
+            .tile {
+                width: 90px;
+                height: 90px;
+                font-size: 2em;
+            }
+
+            .controls {
+                flex-direction: column; /* Stack buttons vertically */
+                align-items: center;
+            }
+
+            button {
+                width: 80%; /* Make buttons take more width */
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Memory Match</h1>
+    <div class="game-board" id="gameBoard"></div>
+    <div class="controls">
+        <button id="resetButton">Reset Game</button>
+        <button id="darkModeToggle">Toggle Dark Mode</button>
+    </div>
+
+    <!-- Message box element -->
+    <div id="messageBox" class="message-box">
+        <p id="messageText"></p>
+        <button id="messageBoxClose">Play Again</button>
+    </div>
+
+    <script>
+        const gameBoard = document.getElementById('gameBoard');
+        const resetButton = document.getElementById('resetButton');
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const messageBox = document.getElementById('messageBox');
+        const messageText = document.getElementById('messageText');
+        const messageBoxClose = document.getElementById('messageBoxClose');
+
+        // Restored to a larger set of symbols (16 unique symbols, 32 tiles total)
+        const symbols = ['🍎', '🍌', '🍒', '🍇', '🍋', '🍊', '🍓', '�', '🍍', '🥝', '🍑', '🥥', '🥑', '🍆', '🌶️', '🥔'];
+        let gameTiles = [];
+        let flippedTiles = [];
+        let matchedTilesCount = 0;
+        let lockBoard = false;
+
+        /**
+         * Displays a custom message box with a given message.
+         * @param {string} message - The message to display.
+         */
+        function showMessageBox(message) {
+            messageText.textContent = message;
+            messageBox.style.display = 'block';
+        }
+
+        /**
+         * Hides the custom message box.
+         */
+        function hideMessageBox() {
+            messageBox.style.display = 'none';
+        }
+
+        /**
+         * Shuffles an array in place using the Fisher-Yates (Knuth) algorithm.
+         * @param {Array} array - The array to shuffle.
+         * @returns {Array} The shuffled array.
+         */
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        /**
+         * Creates and initializes the game board with shuffled tiles.
+         */
+        function createBoard() {
+            gameBoard.innerHTML = ''; // Clear any existing tiles
+            matchedTilesCount = 0;
+            flippedTiles = [];
+            lockBoard = false;
+            hideMessageBox(); // Hide message box on new game
+
+            // Duplicate symbols to create pairs
+            const duplicatedSymbols = [...symbols, ...symbols];
+            gameTiles = shuffle(duplicatedSymbols);
+
+            // Dynamically adjust grid columns based on the total number of tiles
+            // Aim for roughly a square or slightly rectangular board
+            let numColumns;
+            const totalTiles = gameTiles.length;
+            if (totalTiles <= 12) { // 3x4 or 4x3
+                numColumns = 4;
+            } else if (totalTiles <= 16) { // 4x4
+                numColumns = 4;
+            } else if (totalTiles <= 20) { // 4x5 or 5x4
+                numColumns = 5;
+            } else { // Fallback for larger sets like 32 tiles (which will be 6 columns)
+                numColumns = 6;
+            }
+
+            // Adjust grid columns based on screen width for better responsiveness
+            // This is a simple heuristic, more advanced media queries could be used in CSS
+            if (window.innerWidth < 600) {
+                numColumns = Math.min(numColumns, 4); // Max 4 columns on small screens for larger board
+            } else if (window.innerWidth < 900) {
+                 numColumns = Math.min(numColumns, 6); // Max 6 columns on medium screens
+            }
+
+
+            gameBoard.style.gridTemplateColumns = `repeat(${numColumns}, 100px)`;
+
+
+            // Create tile elements
+            gameTiles.forEach((symbol, index) => {
+                const tile = document.createElement('div');
+                tile.classList.add('tile');
+                // Store the actual symbol value on the tile for comparison
+                tile.dataset.symbol = symbol;
+                tile.dataset.index = index; // Keep index for debugging if needed
+
+                const front = document.createElement('div');
+                front.classList.add('front');
+                front.textContent = symbol; // Display the symbol on the front
+
+                const back = document.createElement('div');
+                back.classList.add('back');
+
+                tile.appendChild(front);
+                tile.appendChild(back);
+
+                // Add click event listener to flip the tile
+                tile.addEventListener('click', () => flipTile(tile));
+                gameBoard.appendChild(tile);
+            });
+        }
+
+        /**
+         * Handles the logic for flipping a tile.
+         * @param {HTMLElement} tile - The tile element that was clicked.
+         */
+        function flipTile(tile) {
+            // Prevent flipping if board is locked or tile is already flipped/matched
+            if (lockBoard || tile.classList.contains('flipped') || tile.classList.contains('matched')) {
+                return;
+            }
+
+            tile.classList.add('flipped');
+            flippedTiles.push(tile); // Add the flipped tile to the array
+
+            // If two tiles are flipped, check for a match
+            if (flippedTiles.length === 2) {
+                lockBoard = true; // Lock the board to prevent more flips
+                checkForMatch();
+            }
+        }
+
+        /**
+         * Checks if the two currently flipped tiles are a match.
+         */
+        function checkForMatch() {
+            const [firstTile, secondTile] = flippedTiles;
+            // Compare symbols stored in dataset
+            const isMatch = firstTile.dataset.symbol === secondTile.dataset.symbol;
+
+            if (isMatch) {
+                disableTiles(); // If matched, keep them flipped and mark as matched
+            } else {
+                unflipTiles(); // If not matched, flip them back
+            }
+        }
+
+        /**
+         * Handles actions for matched tiles (adding 'matched' class, removing listeners).
+         */
+        function disableTiles() {
+            flippedTiles.forEach(tile => {
+                tile.classList.add('matched'); // Add 'matched' class for styling
+                // Remove click listener so matched tiles can't be flipped again
+                tile.removeEventListener('click', () => flipTile(tile));
+            });
+            matchedTilesCount += 2; // Increment matched count
+
+            resetFlippedTiles(); // Reset state for next flips
+
+            // Check if all tiles are matched
+            if (matchedTilesCount === gameTiles.length) {
+                setTimeout(() => {
+                    showMessageBox('Congratulations! You matched all the tiles!');
+                }, 500); // Show message after a brief delay
+            }
+        }
+
+        /**
+         * Handles actions for non-matched tiles (flipping them back).
+         */
+        function unflipTiles() {
+            setTimeout(() => {
+                flippedTiles.forEach(tile => {
+                    tile.classList.remove('flipped'); // Remove 'flipped' class
+                });
+                resetFlippedTiles(); // Reset state
+            }, 1000); // Flip back after 1 second
+        }
+
+        /**
+         * Resets the state of flipped tiles array and unlocks the board.
+         */
+        function resetFlippedTiles() {
+            flippedTiles = [];
+            lockBoard = false;
+        }
+
+        /**
+         * Applies the dark mode class to the body and saves the preference to localStorage.
+         * @param {boolean} enable - True to enable dark mode, false to disable.
+         */
+        function setDarkMode(enable) {
+            if (enable) {
+                document.body.classList.add('dark-mode');
+                localStorage.setItem('darkMode', 'enabled');
+            } else {
+                document.body.classList.remove('dark-mode');
+                localStorage.setItem('darkMode', 'disabled');
+            }
+        }
+
+        /**
+         * Initializes the theme based on localStorage preference or system preference.
+         */
+        function initializeTheme() {
+            const savedMode = localStorage.getItem('darkMode');
+            if (savedMode === 'enabled') {
+                setDarkMode(true);
+            } else if (savedMode === 'disabled') {
+                setDarkMode(false);
+            } else {
+                // If no preference saved, check system preference
+                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    setDarkMode(true);
+                } else {
+                    setDarkMode(false);
+                }
+            }
+        }
+
+        // --- Event Listeners ---
+
+        // Event listener for the Reset Game button
+        resetButton.addEventListener('click', createBoard);
+
+        // Event listener for the Dark Mode Toggle button
+        darkModeToggle.addEventListener('click', () => {
+            // Toggle the dark-mode class and update localStorage
+            const isDarkMode = document.body.classList.contains('dark-mode');
+            setDarkMode(!isDarkMode);
+        });
+
+        // Event listener for the "Play Again" button in the message box
+        messageBoxClose.addEventListener('click', createBoard);
+
+        // --- Initialization ---
+
+        // Initialize the theme when the page loads
+        initializeTheme();
+        // Initialize the game when the page loads
+        createBoard();
+
+        // Optional: Listen for system theme changes and update if no specific user preference is set
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            const savedMode = localStorage.getItem('darkMode');
+            // Only update if the user hasn't explicitly set a preference
+            if (!savedMode) {
+                setDarkMode(event.matches);
+            }
+        });
+
+    </script>
+</body>
+</html>
+�

@@ -1,0 +1,1583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lil Kong's Money Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom styles to mimic Math Playground aesthetic and ensure responsiveness */
+        body {
+            font-family: 'Inter', sans-serif; /* Using Inter as per instructions, but giving a playful vibe with colors */
+            /* Default background color - will be overridden by JavaScript for themes */
+            background-color: #e0f2f7;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh; /* Keep this to ensure it takes full height, but allow overflow */
+            margin: 0;
+            padding: 1rem; /* Add some padding for smaller screens */
+            box-sizing: border-box; /* Include padding in element's total width and height */
+            transition: background-color 0.5s ease; /* Smooth transition for theme change */
+            position: relative; /* Needed for absolutely positioned global environment emojis */
+        }
+
+        .game-wrapper {
+            max-width: 90%; /* Max width for responsiveness */
+            width: 800px; /* Max width for desktop */
+            background-color: #ffffff;
+            border: 5px solid #ff9800; /* Bright orange border */
+            border-radius: 20px; /* More rounded corners */
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            align-items: center;
+            z-index: 10; /* Ensure game content is above global environment emojis */
+            position: relative; /* To contain its own z-index context */
+        }
+
+        .header {
+            /* Default background color - will be overridden by JavaScript for themes */
+            background-color: #6a1b9a; /* Deep purple header */
+            color: white;
+            padding: 1rem 0;
+            border-radius: 15px;
+            width: 100%;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            font-size: 1.8em;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            text-align: center;
+            transition: background-color 0.5s ease, color 0.5s ease; /* Smooth transition for theme change */
+        }
+
+        .game-area {
+            /* Default background color - will be overridden by JavaScript for themes */
+            background-color: #81c784; /* Green "jungle" background */
+            /* Default border color - will be overridden by JavaScript for themes */
+            border: 3px solid #388e3c; /* Darker green border */
+            border-radius: 15px;
+            width: 100%;
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative; /* For positioning Lil Kong and location emoji */
+            padding: 1rem;
+            box-sizing: border-box;
+            cursor: pointer; /* Indicate clickable area */
+            transition: background-color 0.5s ease, border-color 0.5s ease; /* Smooth transition for theme change */
+            overflow: hidden; /* Hide game area environment emojis if they go out of bounds */
+            z-index: 5; /* Ensure game area is above global emojis but below wrapper for shadow */
+        }
+
+        .game-area:active {
+            background-color: #66bb6a; /* Slightly darker green on click (default only, hardcoded) */
+        }
+
+        /* Fullscreen specific styles for game-area */
+        .game-area.is-fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw; /* Viewport width */
+            height: 100vh; /* Viewport height */
+            border-radius: 0; /* Remove rounded corners in fullscreen */
+            border: none; /* Remove border in fullscreen */
+            padding: 0; /* Remove padding */
+            margin: 0; /* Remove margin */
+            z-index: 9; /* Ensure it's below the smart bar */
+        }
+
+        #lilKong {
+            font-size: 8rem; /* Large emoji for Lil Kong */
+            position: absolute; /* Allow positioning within game-area */
+            user-select: none; /* Prevent text selection */
+            pointer-events: none; /* Don't block clicks on the banana spawn area */
+            animation: bounce 2s infinite ease-in-out; /* Simple bounce animation */
+            z-index: 3; /* Lil Kong is on top of environment elements within gameArea */
+        }
+
+        .banana {
+            font-size: 3rem; /* Banana emoji size */
+            position: absolute;
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.1s ease-out; /* Smooth scale on click */
+            z-index: 4; /* Bananas are on top of Lil Kong and environment elements */
+        }
+
+        .banana:active {
+            transform: scale(0.9); /* Shrink slightly on click */
+        }
+
+        .score-display {
+            font-size: 2.2em;
+            font-weight: bold;
+            color: #d32f2f; /* Red for money */
+            background-color: #ffe082; /* Light yellow background */
+            padding: 0.8rem 1.5rem;
+            border-radius: 10px;
+            border: 2px solid #ffca28;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-top: 1rem;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap; /* Allow buttons to wrap on small screens */
+            justify-content: center;
+        }
+
+        .control-buttons button, .shop-buttons button, .shop-item button {
+            background-color: #42a5f5; /* Blue button */
+            color: white;
+            padding: 0.8rem 1.8rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            min-width: 120px; /* Ensure buttons have minimum width */
+            text-align: center;
+        }
+
+        .control-buttons button:hover, .shop-buttons button:hover, .shop-item button:hover {
+            background-color: #2196f3; /* Darker blue on hover */
+            transform: translateY(-2px); /* Slight lift effect */
+        }
+
+        .control-buttons button:active, .shop-buttons button:active, .shop-item button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 3px rgba(0,0,0,0.1);
+        }
+
+        .control-buttons button:disabled, .shop-buttons button:disabled, .shop-item button:disabled {
+            background-color: #90caf9; /* Lighter blue for disabled */
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Keyframe for simple bounce animation */
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        /* Confetti animation */
+        .confetti {
+            position: absolute;
+            background-color: #f00; /* Red */
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            opacity: 1; /* Start visible */
+            animation: fade-out 1.5s forwards;
+            pointer-events: none; /* Make sure it doesn't block clicks */
+            z-index: 1000; /* Ensure confetti is on top */
+        }
+
+        @keyframes fade-out {
+            0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+            100% { transform: translate(var(--x), var(--y)) rotate(var(--rot)); opacity: 0; }
+        }
+
+        /* Benefit Shop styles */
+        .benefit-shop {
+            background-color: #fff9c4; /* Light yellow for shop */
+            border: 3px solid #ffeb3b; /* Yellow border */
+            border-radius: 15px;
+            padding: 1.5rem;
+            width: 100%;
+            margin-top: 1.5rem;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .benefit-shop h2 {
+            font-size: 1.6em;
+            color: #f57f17; /* Darker yellow/orange */
+            margin-bottom: 1rem;
+            font-weight: bold;
+        }
+
+        .shop-categories {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .shop-category {
+            background-color: #e0f7fa; /* Very light blue for category background */
+            border: 2px solid #80deea;
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .shop-category h3 {
+            font-size: 1.3em;
+            color: #00838f; /* Dark teal */
+            margin-bottom: 1rem;
+            font-weight: bold;
+        }
+
+        .shop-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .shop-item {
+            background-color: #a7d9b7; /* Light green for shop item background */
+            border: 2px solid #66bb6a;
+            border-radius: 10px;
+            padding: 0.8rem 1.2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1 1 calc(33% - 1rem); /* Three items per row on larger screens */
+            max-width: calc(33% - 0.66rem);
+            box-sizing: border-box; /* Ensure padding/border is included in width */
+            min-width: 150px; /* Minimum width for items */
+        }
+
+        .shop-item p {
+            font-size: 1em;
+            color: #388e3c;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+
+        .shop-item .item-visual {
+            font-size: 2em; /* Size for skin emojis */
+            margin-bottom: 0.5rem;
+        }
+
+        .shop-item .color-preview {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid rgba(0,0,0,0.2);
+            margin-bottom: 0.5rem;
+            display: inline-block; /* For side-by-side colors */
+        }
+
+        .shop-item button {
+            background-color: #ef5350; /* Red button for purchase */
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.9em;
+            margin-top: 0.5rem;
+            min-width: unset; /* Override general button min-width */
+        }
+
+        .shop-item button:hover {
+            background-color: #d32f2f; /* Darker red on hover */
+        }
+
+        .shop-item button.equipped {
+            background-color: #7cb342; /* Green for equipped */
+            cursor: default;
+        }
+        .shop-item button.equipped:hover {
+            background-color: #7cb342; /* Green for equipped, no hover change */
+            transform: none;
+        }
+
+        /* Environment specific styles - global background emojis */
+        .global-environment-emoji {
+            position: absolute;
+            font-size: 2.5rem; /* Smaller than Lil Kong */
+            user-select: none;
+            pointer-events: none; /* Do not block clicks on elements */
+            opacity: 0.7; /* Slightly faded */
+            z-index: 0; /* Behind all content */
+        }
+
+        /* Styles for emojis within the game area */
+        .game-area-decoration {
+            position: absolute;
+            font-size: 1.5rem; /* Smaller decorations */
+            user-select: none;
+            pointer-events: none;
+            opacity: 0.6;
+            z-index: 1; /* Below Lil Kong and bananas */
+        }
+
+        #environmentLocationEmoji {
+            position: absolute;
+            font-size: 5rem; /* Larger, but smaller than Lil Kong */
+            bottom: 20px; /* Position at the bottom */
+            left: 50%;
+            transform: translateX(-50%);
+            user-select: none;
+            pointer-events: none;
+            opacity: 0.8;
+            z-index: 2; /* Static foreground element, behind Lil Kong */
+        }
+
+        .promo-code-box {
+            background-color: #add8e6; /* Light blue for promo box */
+            border: 2px solid #6a5acd; /* Medium blue border */
+            border-radius: 10px;
+            padding: 1.5rem;
+            width: 100%;
+            margin-top: 1.5rem;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .promo-code-box h3 {
+            font-size: 1.2em;
+            color: #3f51b5; /* Darker blue */
+            margin-bottom: 1rem;
+            font-weight: bold;
+        }
+
+        .promo-code-input {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .promo-code-input input {
+            padding: 0.75rem;
+            border: 2px solid #9fa8da; /* Light purple-blue */
+            border-radius: 6px;
+            font-size: 1em;
+            flex-grow: 1;
+            max-width: 250px; /* Limit input width */
+        }
+
+        .promo-code-input button {
+            background-color: #8bc34a; /* Green for apply button */
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .promo-code-input button:hover {
+            background-color: #689f38; /* Darker green on hover */
+            transform: translateY(-1px);
+        }
+
+        .promo-code-input button:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .shop-message {
+            font-size: 1.1em;
+            color: #c62828; /* Error red */
+            margin-top: 0.5rem;
+            font-weight: bold;
+        }
+
+        /* Fullscreen button specific styles */
+        #fullscreenBtn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+            color: white;
+            border: none;
+            border-radius: 50%; /* Make it round */
+            width: 40px;
+            height: 40px;
+            font-size: 1.5em;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10; /* Ensure it's on top of game area content */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: background-color 0.3s ease, transform 0.1s ease;
+        }
+
+        #fullscreenBtn:hover {
+            background-color: rgba(0, 0, 0, 0.7);
+            transform: scale(1.1);
+        }
+        #fullscreenBtn:active {
+            transform: scale(1.0);
+        }
+
+        /* SmartBar for Fullscreen */
+        .smart-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            background-color: #333; /* Dark background for browser-like bar */
+            color: white;
+            padding: 0.5rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.2em;
+            z-index: 999; /* Ensure it's on top of everything */
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            display: none; /* Hidden by default */
+        }
+
+        .smart-bar .title {
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .smart-bar .fullscreen-score-display {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #ffe082; /* Yellowish for contrast */
+            padding: 0.3rem 0.8rem;
+            border-radius: 5px;
+            background-color: rgba(255, 255, 255, 0.1);
+            margin-right: 10px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .smart-bar button {
+            background-color: #42a5f5; /* Blue button, consistent with other buttons */
+            color: white;
+            padding: 0.4rem 1rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+        }
+        .smart-bar button:hover {
+            background-color: #2196f3;
+            transform: translateY(-1px);
+        }
+        .smart-bar button:active {
+            transform: translateY(0);
+        }
+
+
+        /* Media queries for responsiveness */
+        @media (max-width: 768px) {
+            .game-wrapper {
+                padding: 1rem;
+                max-width: 100%;
+            }
+            .header {
+                font-size: 1.5em;
+                padding: 0.8rem 0;
+            }
+            #lilKong {
+                font-size: 6rem;
+            }
+            .banana {
+                font-size: 2.5rem;
+            }
+            .score-display {
+                font-size: 1.8em;
+                padding: 0.6rem 1rem;
+            }
+            .control-buttons button, .shop-buttons button, .shop-item button {
+                font-size: 1em;
+                padding: 0.6rem 1.2rem;
+            }
+            .shop-item {
+                flex: 1 1 calc(50% - 1rem); /* Two items per row on tablets */
+                max-width: calc(50% - 0.5rem);
+            }
+            .promo-code-input {
+                flex-direction: column;
+                align-items: center;
+            }
+            .promo-code-input input {
+                max-width: 80%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 0.5rem;
+            }
+            .game-wrapper {
+                border-width: 3px;
+                border-radius: 15px;
+                padding: 1rem;
+            }
+            .header {
+                font-size: 1.2em;
+                border-radius: 10px;
+            }
+            #lilKong {
+                font-size: 5rem;
+            }
+            .banana {
+                font-size: 2rem;
+            }
+            .score-display {
+                font-size: 1.5em;
+            }
+            .control-buttons, .shop-items {
+                flex-direction: column; /* Stack buttons vertically */
+            }
+            .shop-item {
+                flex: 1 1 100%; /* One item per row on mobile */
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="smartBar" class="smart-bar">
+        <span class="title">Lil Kong's Adventure</span>
+        <div class="fullscreen-score-display">
+            <span id="fullscreenMoneySymbol">$</span><span id="fullscreenScore">0</span>
+        </div>
+        <button id="normalViewBtn">Normal View</button>
+    </div>
+
+    <div class="game-wrapper">
+        <div class="header" id="gameHeader">
+            <h1>🐒 Lil Kong's Money Simulator 🍌</h1>
+            <p class="text-sm mt-1">Help Lil Kong collect bananas for money!</p>
+        </div>
+
+        <div id="gameArea" class="game-area">
+            <div id="lilKong">🐵</div>
+            <button id="fullscreenBtn">↕️</button>
+        </div>
+
+        <div class="score-display">
+            <span id="moneySymbol">$</span><span id="score">0</span>
+        </div>
+
+        <div class="control-buttons">
+            </div>
+
+        <div class="benefit-shop">
+            <h2>✨ Benefit Shop ✨</h2>
+            <div class="shop-categories">
+                <div class="shop-category">
+                    <h3>⚡️ Upgrades ⚡️</h3>
+                    <div class="shop-items">
+                        <div class="shop-item">
+                            <p>Faster Bananas!</p>
+                            <p>Cost: $<span id="fasterBananaCost">100</span></p>
+                            <p>Bought: <span id="fasterBananaUpgradesBought">0</span></p>
+                            <button id="buyFasterBananaBtn">Buy</button>
+                        </div>
+                        <div class="shop-item">
+                            <p>Bigger Bananas!</p>
+                            <p>Cost: $<span id="biggerBananaCost">150</span></p>
+                            <p>Bought: <span id="biggerBananaUpgradesBought">0</span></p>
+                            <button id="buyBiggerBananaBtn">Buy</button>
+                        </div>
+                        <div class="shop-item">
+                            <p>Auto Collect</p>
+                            <p>Rate: <span id="autoCollectRateDisplay">0</span> / sec</p>
+                            <p>Cost: $<span id="autoCollectCost">200</span></p>
+                            <p>Bought: <span id="autoCollectUpgradesBought">0</span></p>
+                            <button id="buyAutoCollectBtn">Buy</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="shop-category">
+                    <h3>🎨 Money Skins 🎨</h3>
+                    <div class="shop-items" id="moneySkinsContainer">
+                        <div class="shop-item">
+                            <div class="item-visual">$</div>
+                            <p>Default Money</p>
+                            <button data-skin-id="defaultMoney" data-skin-cost="0">Equipped</button>
+                        </div>
+                        <div class="shop-item">
+                            <div class="item-visual">🐚</div>
+                            <p>Shell</p>
+                            <p>Cost: $<span id="shellCost">200</span></p>
+                            <button data-skin-id="shell" data-skin-cost="200">Buy</button>
+                        </div>
+                        <div class="shop-item">
+                            <div class="item-visual">🌟</div>
+                            <p>Star</p>
+                            <p>Cost: $<span id="starCost">300</span></p>
+                            <button data-skin-id="star" data-skin-cost="300">Buy</button>
+                        </div>
+                        <div class="shop-item">
+                            <div class="item-visual">🍂</div>
+                            <p>Fallen Leaf</p>
+                            <p>Cost: $<span id="fallenLeafCost">400</span></p>
+                            <button data-skin-id="fallenLeaf" data-skin-cost="400">Buy</button>
+                        </div>
+                        <div class="shop-item">
+                            <div class="item-visual">💰</div>
+                            <p>Gold Coin</p>
+                            <p>Cost: $<span id="goldCoinCost">500</span></p>
+                            <button data-skin-id="goldCoin" data-skin-cost="500">Buy</button>
+                        </div>
+                        <div class="shop-item">
+                            <div class="item-visual">💎</div>
+                            <p>Gem</p>
+                            <p>Cost: $<span id="gemCost">750</span></p>
+                            <button data-skin-id="gem" data-skin-cost="750">Buy</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="shop-category">
+                    <h3>🍎 Banana Skins 🍍</h3>
+                    <div class="shop-items" id="bananaSkinsContainer">
+                        <div class="shop-item">
+                            <div class="item-visual">🍌</div>
+                            <p>Default Banana</p>
+                            <button data-skin-id="defaultBanana" data-skin-cost="0">Equipped</button>
+                        </div>
+                        <div class="shop-item">
+                            <div class="item-visual">🫐</div>
+                            <p>Blueberry</p>
+                            <p>Cost: $<span id="blueberryCost">150</span></p>
+                            <button data-skin-id="blueberry" data-skin-cost="150">Buy</button>
+                        </div>
+                        <div class="shop-item">
+                            <div class="item-visual">🍊</div>
+                            <p>Tangerine</p>
+                            <p>Cost: $<span id="tangerineCost">250</span></p>
+                            <button data-skin-id="tangerine" data-skin-cost="250">Buy</button>
+                        </div>
+                        <div class="shop-item">
+                            <div class="item-visual">🍎</div>
+                            <p>Red Apple</p>
+                            <p>Cost: $<span id="redAppleCost">350</span></p>
+                            <button data-skin-id="redApple" data-skin-cost="350">Buy</button>
+                        </div>
+                        <div class="shop-item">
+                            <div class="item-visual">🍈</div>
+                            <p>Melon</p>
+                            <p>Cost: $<span id="melonCost">500</span></p>
+                            <button data-skin-id="melon" data-skin-cost="500">Buy</button>
+                        </div>
+                        <div class="shop-item">
+                            <div class="item-visual">🍍</div>
+                            <p>Pineapple</p>
+                            <p>Cost: $<span id="pineappleCost">700</span></p>
+                            <button data-skin-id="pineapple" data-skin-cost="700">Buy</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="shop-category">
+                    <h3>🐵 Monkey Skins 🐒</h3>
+                    <div class="shop-items" id="monkeySkinsContainer">
+                        <div class="shop-item">
+                            <div class="item-visual">🐵</div>
+                            <p>Default Lil Kong</p>
+                            <button data-skin-id="defaultMonkey" data-skin-cost="0">Equipped</button>
+                        </div>
+                        <div class="shop-item">
+                            <div class="item-visual">🦍</div>
+                            <p>Gorilla Kong</p>
+                            <p>Cost: $<span id="gorillaKongCost">600</span></p>
+                            <button data-skin-id="gorillaKong" data-skin-cost="600">Buy</button>
+                        </div>
+                        <div class="shop-item">
+                            <div class="item-visual">🦧</div>
+                            <p>Orangutan Kong</p>
+                            <p>Cost: $<span id="orangutanKongCost">1000</span></p>
+                            <button data-skin-id="orangutanKong" data-skin-cost="1000">Buy</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="shop-category">
+                    <h3>🌈 Color Themes 🎨</h3>
+                    <div class="shop-items" id="themeSkinsContainer">
+                        <div class="shop-item">
+                            <p>Classic Theme</p>
+                            <div style="display: flex; gap: 5px;">
+                                <span class="color-preview" style="background-color: #FAE7B5;" title="Body Background (Banana Yellow)"></span>
+                                <span class="color-preview" style="background-color: rgb(0,0,255);" title="Header Background (Blue)"></span>
+                                <span class="color-preview" style="background-color: rgb(0,255,0);" title="Game Area Background (Green)"></span>
+                            </div>
+                            <button data-skin-id="classicTheme" data-skin-cost="0">Equipped</button>
+                        </div>
+                        <div class="shop-item">
+                            <p>Berry Theme</p>
+                            <p>Cost: $<span id="berryThemeCost">300</span></p>
+                            <div style="display: flex; gap: 5px;">
+                                <span class="color-preview" style="background-color: #e0f2f7;" title="Body Background"></span>
+                                <span class="color-preview" style="background-color: #6a1b9a;" title="Header Background"></span>
+                                <span class="color-preview" style="background-color: #81c784;" title="Game Area Background"></span>
+                            </div>
+                            <button data-skin-id="berryTheme" data-skin-cost="300">Buy</button>
+                        </div>
+                        <div class="shop-item">
+                            <p>Vibrant Blue Theme</p>
+                            <p>Cost: $<span id="vibrantBlueThemeCost">600</span></p>
+                            <div style="display: flex; gap: 5px;">
+                                <span class="color-preview" style="background-color: #e0f2f7;" title="Body Background"></span>
+                                <span class="color-preview" style="background-color: rgb(0,0,255);" title="Header Background"></span>
+                                <span class="color-preview" style="background-color: #81c784;" title="Game Area Background"></span>
+                            </div>
+                            <button data-skin-id="vibrantBlueTheme" data-skin-cost="600">Buy</button>
+                        </div>
+                        <div class="shop-item">
+                            <p>Sunset Theme</p>
+                            <p>Cost: $<span id="sunsetThemeCost">800</span></p>
+                            <div style="display: flex; gap: 5px;">
+                                <span class="color-preview" style="background-color: #ffe0b2;" title="Body Background"></span>
+                                <span class="color-preview" style="background-color: #e65100;" title="Header Background"></span>
+                                <span class="color-preview" style="background-color: #ff8a65;" title="Game Area Background"></span>
+                            </div>
+                            <button data-skin-id="sunsetTheme" data-skin-cost="800">Buy</button>
+                        </div>
+                        <div class="shop-item">
+                            <p>Deep Forest Theme</p>
+                            <p>Cost: $<span id="deepForestThemeCost">1200</span></p>
+                            <div style="display: flex; gap: 5px;">
+                                <span class="color-preview" style="background-color: #c8e6c9;" title="Body Background"></span>
+                                <span class="color-preview" style="background-color: #33691e;" title="Header Background"></span>
+                                <span class="color-preview" style="background-color: #4caf50;" title="Game Area Background"></span>
+                            </div>
+                            <button data-skin-id="deepForestTheme" data-skin-cost="1200">Buy</button>
+                        </div>
+                        <div class="shop-item">
+                            <p>Modern Luxury Theme</p>
+                            <p>Cost: $<span id="modernLuxuryThemeCost">1500</span></p>
+                            <div style="display: flex; gap: 5px;">
+                                <span class="color-preview" style="background-color: black;" title="Body Background"></span>
+                                <span class="color-preview" style="background-color: lightblue;" title="Header Background"></span>
+                                <span class="color-preview" style="background-color: rgb(0,0,255);" title="Game Area Background"></span>
+                            </div>
+                            <button data-skin-id="modernLuxuryTheme" data-skin-cost="1500">Buy</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="shop-category">
+                    <h3>🏞 Environments 🌲</h3>
+                    <div class="shop-items" id="environmentSkinsContainer">
+                        <div class="shop-item">
+                            <div class="item-visual">🌾</div>
+                            <p>Plains Biome</p>
+                            <button data-skin-id="plainsBiome" data-skin-cost="0">Equipped</button>
+                        </div>
+                        <div class="shop-item">
+                            <div class="item-visual">🌳</div>
+                            <p>Forest</p>
+                            <p>Cost: $<span id="forestBiomeCost">800</span></p>
+                            <button data-skin-id="forestBiome" data-skin-cost="800">Buy</button>
+                        </div>
+                        <div class="shop-item">
+                            <div class="item-visual">🌊</div>
+                            <p>Sea</p>
+                            <p>Cost: $<span id="seaBiomeCost">1200</span></p>
+                            <button data-skin-id="seaBiome" data-skin-cost="1200">Buy</button>
+                        </div>
+                        <div class="shop-item">
+                            <div class="item-visual">🏜</div>
+                            <p>Desert</p>
+                            <p>Cost: $<span id="desertBiomeCost">1600</span></p>
+                            <button data-skin-id="desertBiome" data-skin-cost="1600">Buy</button>
+                        </div>
+                        <div class="shop-item">
+                            <div class="item-visual">🏝</div>
+                            <p>Island</p>
+                            <p>Cost: $<span id="islandBiomeCost">2000</span></p>
+                            <button data-skin-id="islandBiome" data-skin-cost="2000">Buy</button>
+                        </div>
+                        <div class="shop-item">
+                            <div class="item-visual">🌅</div>
+                            <p>Beach</p>
+                            <p>Cost: $<span id="beachBiomeCost">2500</span></p>
+                            <button data-skin-id="beachBiome" data-skin-cost="2500">Buy</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <p id="shopMessage" class="shop-message"></p>
+        </div>
+
+        <div class="promo-code-box">
+            <h3>🎁 Enter Promo Code 🎁</h3>
+            <div class="promo-code-input">
+                <input type="text" id="promoCodeInput" placeholder="Enter code here...">
+                <button id="applyPromoCodeBtn">Apply Code</button>
+            </div>
+            <p id="promoMessage" class="shop-message"></p>
+        </div>
+    </div>
+
+    <script>
+        // Get references to DOM elements
+        const gameArea = document.getElementById('gameArea');
+        const scoreDisplay = document.getElementById('score');
+        const moneySymbolDisplay = document.getElementById('moneySymbol');
+        const gameHeader = document.getElementById('gameHeader');
+        const lilKong = document.getElementById('lilKong');
+        const fullscreenBtn = document.getElementById('fullscreenBtn'); // Get fullscreen button
+        const smartBar = document.getElementById('smartBar'); // Correctly references the SmartBar
+        const normalViewBtn = document.getElementById('normalViewBtn'); // Get the normal view button
+
+        // New fullscreen money display elements
+        const fullscreenScoreDisplay = document.getElementById('fullscreenScore');
+        const fullscreenMoneySymbolDisplay = document.getElementById('fullscreenMoneySymbol');
+
+
+        const buyFasterBananaBtn = document.getElementById('buyFasterBananaBtn');
+        const fasterBananaCostDisplay = document.getElementById('fasterBananaCost');
+        const fasterBananaUpgradesBoughtDisplay = document.getElementById('fasterBananaUpgradesBought');
+        const buyBiggerBananaBtn = document.getElementById('buyBiggerBananaBtn');
+        const biggerBananaCostDisplay = document.getElementById('biggerBananaCost');
+        const biggerBananaUpgradesBoughtDisplay = document.getElementById('biggerBananaUpgradesBought');
+
+        // New Auto Collect elements
+        const buyAutoCollectBtn = document.getElementById('buyAutoCollectBtn');
+        const autoCollectCostDisplay = document.getElementById('autoCollectCost');
+        const autoCollectRateDisplay = document.getElementById('autoCollectRateDisplay');
+        const autoCollectUpgradesBoughtDisplay = document.getElementById('autoCollectUpgradesBought');
+
+
+        const shopMessage = document.getElementById('shopMessage'); // For general shop messages
+
+        // Promo Code elements
+        const promoCodeInput = document.getElementById('promoCodeInput');
+        const applyPromoCodeBtn = document.getElementById('applyPromoCodeBtn');
+        const promoMessage = document.getElementById('promoMessage'); // For promo code specific messages
+
+        // Skin containers
+        const moneySkinsContainer = document.getElementById('moneySkinsContainer');
+        const bananaSkinsContainer = document.getElementById('bananaSkinsContainer');
+        const monkeySkinsContainer = document.getElementById('monkeySkinsContainer');
+        const themeSkinsContainer = document.getElementById('themeSkinsContainer');
+        const environmentSkinsContainer = document.getElementById('environmentSkinsContainer');
+
+        let score = 0;
+        let bananaInterval;
+        let bananaSpawnSpeed = 1500;
+        let bananaValue = 10;
+
+        // Benefit costs (fixed costs)
+        let fasterBananaUpgradeCost = 100;
+        let biggerBananaUpgradeCost = 150;
+        let autoCollectUpgradeCost = 200; // Initial cost for auto collect
+
+        // Upgrade counters
+        let fasterBananaUpgradesBought = 0;
+        let biggerBananaUpgradesBought = 0;
+        let autoCollectUpgradesBought = 0; // Auto collect upgrade counter
+
+        let autoCollectRate = 0; // Bananas collected per second automatically
+        let autoCollectIntervalId = null; // To hold the setInterval ID for auto-collection
+
+        // Track used promo codes to prevent reuse
+        const usedPromoCodes = {
+            "back_to_monkey": false
+        };
+
+        // Skin data - now with fixed prices and ordered for display
+        const moneySkins = {
+            defaultMoney: { symbol: '$', cost: 0, purchased: true, equipped: true },
+            shell: { symbol: '🐚', cost: 200, purchased: false, equipped: false },
+            star: { symbol: '🌟', cost: 300, purchased: false, equipped: false },
+            fallenLeaf: { symbol: '🍂', cost: 400, purchased: false, equipped: false },
+            goldCoin: { symbol: '💰', cost: 500, purchased: false, equipped: false },
+            gem: { symbol: '💎', cost: 750, purchased: false, equipped: false }
+        };
+
+        const bananaSkins = {
+            defaultBanana: { symbol: '🍌', cost: 0, purchased: true, equipped: true },
+            blueberry: { symbol: '🫐', cost: 150, purchased: false, equipped: false },
+            tangerine: { symbol: '🍊', cost: 250, purchased: false, equipped: false },
+            redApple: { symbol: '🍎', cost: 350, purchased: false, equipped: false },
+            melon: { symbol: '🍈', cost: 500, purchased: false, equipped: false },
+            pineapple: { symbol: '�', cost: 700, purchased: false, equipped: false }
+        };
+
+        const monkeySkins = {
+            defaultMonkey: { symbol: '🐵', cost: 0, purchased: true, equipped: true },
+            gorillaKong: { symbol: '🦍', cost: 600, purchased: false, equipped: false },
+            orangutanKong: { symbol: '🦧', cost: 1000, purchased: false, equipped: false }
+        };
+
+        const themeSkins = {
+            classicTheme: {
+                name: 'Classic Theme', cost: 0, purchased: true, equipped: true,
+                bodyBg: '#e0f2f7', headerBg: '#6a1b9a', headerColor: 'white',
+                gameAreaBg: '#81c784', gameAreaBorder: '#388e3c'
+            },
+            berryTheme: {
+                name: 'Berry Theme', cost: 300, purchased: false, equipped: false,
+                bodyBg: '#e0f2f7', headerBg: '#6a1b9a', headerColor: 'white',
+                gameAreaBg: '#81c784', gameAreaBorder: '#388e3c'
+            },
+            vibrantBlueTheme: {
+                name: 'Vibrant Blue Theme', cost: 600, purchased: false, equipped: false,
+                bodyBg: '#e0f2f7', headerBg: 'rgb(0,0,255)', headerColor: 'white',
+                gameAreaBg: '#81c784', gameAreaBorder: 'rgb(0,0,255)'
+            },
+            sunsetTheme: {
+                name: 'Sunset Theme', cost: 800, purchased: false, equipped: false,
+                bodyBg: '#ffe0b2', headerBg: '#e65100', headerColor: 'white',
+                gameAreaBg: '#ff8a65', gameAreaBorder: '#bf360c'
+            },
+            deepForestTheme: {
+                name: 'Deep Forest Theme', cost: 1200, purchased: false, equipped: false,
+                bodyBg: '#c8e6c9', headerBg: '#33691e', headerColor: 'white',
+                gameAreaBg: '#4caf50', gameAreaBorder: '#1b5e20'
+            },
+            modernLuxuryTheme: {
+                name: 'Modern Luxury Theme', cost: 1500, purchased: false, equipped: false,
+                bodyBg: 'black', headerBg: 'lightblue', headerColor: 'black',
+                gameAreaBg: 'rgb(0,0,255)', gameAreaBorder: 'rgb(0,0,255)'
+            }
+        };
+
+        const environmentSkins = {
+            plainsBiome: {
+                name: 'Plains Biome', cost: 0, purchased: true, equipped: true,
+                globalBackgroundEmojis: ['☁️', '☀️', '🦋'], // Emojis for the entire body background
+                gameAreaDecorations: ['🌳', '🌼', '🍄'], // Emojis specific to the game area
+                locationEmoji: '🏞️', // A central emoji for the location
+                gameAreaBg: '#81c784', // Default green
+                gameAreaBorder: '#388e3c' // Default dark green
+            },
+            forestBiome: {
+                name: 'Forest', cost: 800, purchased: false, equipped: false,
+                globalBackgroundEmojis: ['🏞', '🌲', '🌳', '🌿'],
+                gameAreaDecorations: ['🪵', '🍄'],
+                locationEmoji: '🏞',
+                gameAreaBg: '#66BB6A', // A slightly different green for forest
+                gameAreaBorder: '#2E7D32' // Darker green for forest
+            },
+            seaBiome: {
+                name: 'Sea', cost: 1200, purchased: false, equipped: false,
+                globalBackgroundEmojis: ['🌊', '☁', '🦈'],
+                gameAreaDecorations: ['🐠', '🪸', '🫧'],
+                locationEmoji: '🌊',
+                gameAreaBg: '#87CEEB', // Sky Blue
+                gameAreaBorder: '#4682B4' // Steel Blue
+            },
+            desertBiome: {
+                name: 'Desert', cost: 1600, purchased: false, equipped: false,
+                globalBackgroundEmojis: ['🏜', '☀', '🌵'],
+                gameAreaDecorations: ['🏜️', '🌵'],
+                locationEmoji: '🏜',
+                gameAreaBg: '#F4A460', // Sandy Brown
+                gameAreaBorder: '#CD853F' // Peru
+            },
+            islandBiome: {
+                name: 'Island', cost: 2000, purchased: false, equipped: false,
+                globalBackgroundEmojis: ['🏝', '🌴', '🌊'],
+                gameAreaDecorations: ['🥥', '🌴', '🦀'],
+                locationEmoji: '🏝',
+                gameAreaBg: '#6495ED', // Cornflower Blue
+                gameAreaBorder: '#4169E1' // Royal Blue
+            },
+            beachBiome: {
+                name: 'Beach', cost: 2500, purchased: false, equipped: false,
+                globalBackgroundEmojis: ['🌅', '🏖', '🌊'],
+                gameAreaDecorations: ['🏖️', '🌊'],
+                locationEmoji: '🏖',
+                gameAreaBg: '#ADD8E6', // Light Blue
+                gameAreaBorder: '#87CEEB' // Sky Blue
+            }
+        };
+
+
+        // Current active skins
+        let currentMoneySkinId = 'defaultMoney';
+        let currentBananaSkinId = 'defaultBanana';
+        let currentMonkeySkinId = 'defaultMonkey';
+        let currentThemeSkinId = 'classicTheme';
+        let currentEnvironmentSkinId = 'plainsBiome';
+
+        // Function to update the score display and check benefit button states
+        function updateScore() {
+            scoreDisplay.textContent = score;
+            moneySymbolDisplay.textContent = moneySkins[currentMoneySkinId].symbol;
+            lilKong.textContent = monkeySkins[currentMonkeySkinId].symbol;
+
+            // Update upgrade counters display
+            fasterBananaUpgradesBoughtDisplay.textContent = fasterBananaUpgradesBought;
+            biggerBananaUpgradesBoughtDisplay.textContent = biggerBananaUpgradesBought;
+            autoCollectRateDisplay.textContent = autoCollectRate.toFixed(1); // Display with one decimal place
+            autoCollectUpgradesBoughtDisplay.textContent = autoCollectUpgradesBought;
+
+
+            // Update fullscreen money display as well
+            if (fullscreenScoreDisplay && fullscreenMoneySymbolDisplay) {
+                fullscreenScoreDisplay.textContent = score;
+                fullscreenMoneySymbolDisplay.textContent = moneySkins[currentMoneySkinId].symbol;
+            }
+
+            checkBenefitButtons();
+            updateSkinButtons();
+        }
+
+        // Function to create and add a banana to the game area
+        function spawnBanana() {
+            const banana = document.createElement('div');
+            banana.textContent = bananaSkins[currentBananaSkinId].symbol;
+            banana.classList.add('banana');
+
+            const gameAreaRect = gameArea.getBoundingClientRect();
+            const bananaSize = 50;
+            const maxX = gameAreaRect.width - bananaSize;
+            const maxY = gameAreaRect.height - bananaSize;
+            const randomX = Math.random() * maxX;
+            const randomY = Math.random() * maxY;
+
+            banana.style.left = `${randomX}px`;
+            banana.style.top = `${randomY}px`;
+
+            banana.addEventListener('click', (event) => {
+                event.stopPropagation();
+                score += bananaValue;
+                updateScore();
+                banana.remove();
+                spawnConfetti(event.clientX, event.clientY);
+            });
+
+            gameArea.appendChild(banana);
+        }
+
+        // Function to spawn confetti effect
+        function spawnConfetti(x, y) {
+            const colors = ['#f00', '#0f0', '#00f', '#ff0', '#0ff', '#f0f'];
+            for (let i = 0; i < 10; i++) {
+                const confetti = document.createElement('div');
+                confetti.classList.add('confetti');
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.left = `${x}px`;
+                confetti.style.top = `${y}px`;
+                confetti.style.setProperty('--x', `${(Math.random() - 0.5) * 200}px`);
+                confetti.style.setProperty('--y', `${(Math.random() - 0.5) * 200}px`);
+                confetti.style.setProperty('--rot', `${Math.random() * 720}deg`);
+                document.body.appendChild(confetti);
+
+                confetti.addEventListener('animationend', () => confetti.remove());
+            }
+        }
+
+        // Function to start the game by continuously spawning bananas
+        function startGame() {
+            if (bananaInterval) clearInterval(bananaInterval);
+            spawnBanana();
+            bananaInterval = setInterval(spawnBanana, bananaSpawnSpeed);
+        }
+
+        // Function to handle auto-collection
+        function startAutoCollect() {
+            if (autoCollectIntervalId) clearInterval(autoCollectIntervalId); // Clear existing interval
+
+            if (autoCollectRate > 0) {
+                autoCollectIntervalId = setInterval(() => {
+                    // Add the banana value multiplied by the autoCollectRate to the score
+                    score += autoCollectRate * bananaValue; // Auto-collect rate is in bananas per second
+                    updateScore();
+                }, 1000); // Every 1 second
+            }
+        }
+
+        // Function to apply the chosen theme colors to the elements
+        function applyTheme(themeId) {
+            const theme = themeSkins[themeId];
+            if (!theme) {
+                console.error('Theme not found:', themeId);
+                return;
+            }
+
+            document.body.style.backgroundColor = theme.bodyBg;
+            gameHeader.style.backgroundColor = theme.headerBg;
+            gameHeader.style.color = theme.headerColor;
+            // gameArea.style.backgroundColor = theme.gameAreaBg; // Removed this line
+            // gameArea.style.borderColor = theme.gameAreaBorder; // Removed this line
+
+            currentThemeSkinId = themeId;
+        }
+
+        // Function to apply the chosen environment emojis and location
+        function applyEnvironment(envId) {
+            const env = environmentSkins[envId];
+            if (!env) {
+                console.error('Environment not found:', envId);
+                return;
+            }
+
+            // Clear old global environment emojis from body
+            document.querySelectorAll('.global-environment-emoji').forEach(el => el.remove());
+            // Clear old game area decoration emojis
+            gameArea.querySelectorAll('.game-area-decoration').forEach(el => el.remove());
+            // Clear previous location emoji if it exists
+            const prevLocationEmoji = document.getElementById('environmentLocationEmoji');
+            if (prevLocationEmoji) {
+                prevLocationEmoji.remove();
+            }
+
+            // Apply game area background and border based on environment
+            gameArea.style.backgroundColor = env.gameAreaBg;
+            gameArea.style.borderColor = env.gameAreaBorder;
+
+
+            // Add new global background emojis to the body
+            const numGlobalEmojis = 100; // Increased number for a denser feel
+            if (env.globalBackgroundEmojis && env.globalBackgroundEmojis.length > 0) {
+                const emojisPerType = Math.ceil(numGlobalEmojis / env.globalBackgroundEmojis.length);
+                env.globalBackgroundEmojis.forEach((emoji) => {
+                    for (let i = 0; i < emojisPerType; i++) {
+                        const emojiDiv = document.createElement('div');
+                        emojiDiv.classList.add('global-environment-emoji');
+                        emojiDiv.textContent = emoji;
+
+                        const emojiSize = 40;
+                        const padding = 20;
+                        const maxX = window.innerWidth - emojiSize - padding * 2;
+                        const maxY = document.body.scrollHeight - emojiSize - padding * 2; /* Use scrollHeight for full page */
+                        emojiDiv.style.left = `${Math.random() * maxX + padding}px`;
+                        emojiDiv.style.top = `${Math.random() * maxY + padding}px`;
+
+                        document.body.appendChild(emojiDiv);
+                    }
+                });
+            }
+
+            // Add new game area decoration emojis
+            if (env.gameAreaDecorations && env.gameAreaDecorations.length > 0) {
+                let numGameAreaEmojis = 10; // Base number of emojis specific to game area
+
+                // Increase decor count significantly if in fullscreen mode
+                if (document.fullscreenElement === gameArea) {
+                    numGameAreaEmojis *= 6; // 6 times more decor in fullscreen
+                }
+
+                const emojisPerGameAreaType = Math.ceil(numGameAreaEmojis / env.gameAreaDecorations.length);
+                env.gameAreaDecorations.forEach((emoji) => {
+                    for (let i = 0; i < emojisPerGameAreaType; i++) {
+                        const decorationEmoji = document.createElement('div');
+                        decorationEmoji.classList.add('game-area-decoration');
+                        decorationEmoji.textContent = emoji;
+
+                        // Position within the gameArea's current dimensions
+                        const gameAreaRect = gameArea.getBoundingClientRect();
+                        const emojiSize = 40;
+                        const padding = 10;
+                        const maxX = gameAreaRect.width - emojiSize - padding * 2;
+                        const maxY = gameAreaRect.height - emojiSize - padding * 2;
+                        decorationEmoji.style.left = `${Math.random() * maxX + padding}px`;
+                        decorationEmoji.style.top = `${Math.random() * maxY + padding}px`;
+
+                        gameArea.appendChild(decorationEmoji);
+                    }
+                });
+            }
+
+
+            // Add special location emoji if exists
+            if (env.locationEmoji) {
+                const locationEmojiDiv = document.createElement('div');
+                locationEmojiDiv.id = 'environmentLocationEmoji';
+                locationEmojiDiv.textContent = env.locationEmoji;
+                gameArea.appendChild(locationEmojiDiv);
+            }
+
+            currentEnvironmentSkinId = envId; // Update current environment ID
+        }
+
+
+        // Function to initialize/reset the game state
+        function initializeGame() {
+            clearInterval(bananaInterval); // Stop any existing banana spawns
+            if (autoCollectIntervalId) clearInterval(autoCollectIntervalId); // Clear auto collect interval
+
+            score = 0;
+            bananaSpawnSpeed = 1500;
+            bananaValue = 10;
+
+            // Set fixed initial upgrade costs
+            fasterBananaUpgradeCost = 100;
+            biggerBananaUpgradeCost = 150;
+            autoCollectUpgradeCost = 200; // Reset auto collect cost
+
+            fasterBananaCostDisplay.textContent = fasterBananaUpgradeCost;
+            biggerBananaCostDisplay.textContent = biggerBananaUpgradeCost;
+            autoCollectCostDisplay.textContent = autoCollectUpgradeCost; // Update auto collect cost display
+
+
+            // Reset upgrade counters
+            fasterBananaUpgradesBought = 0;
+            biggerBananaUpgradesBought = 0;
+            autoCollectUpgradesBought = 0; // Reset auto collect counter
+            autoCollectRate = 0; // Reset auto collect rate
+
+            // Reset promo code usage
+            for (const code in usedPromoCodes) {
+                usedPromoCodes[code] = false;
+            }
+            promoMessage.textContent = ''; // Clear promo message
+
+            // Reset purchased and equipped status for all skins/themes/environments
+            const resetSkins = (skinsData, defaultSkinId) => {
+                for (const key in skinsData) {
+                    skinsData[key].purchased = (key === defaultSkinId);
+                    skinsData[key].equipped = (key === defaultSkinId);
+                }
+            };
+
+            resetSkins(moneySkins, 'defaultMoney');
+            resetSkins(bananaSkins, 'defaultBanana');
+            resetSkins(monkeySkins, 'defaultMonkey');
+            resetSkins(themeSkins, 'classicTheme');
+            resetSkins(environmentSkins, 'plainsBiome');
+
+
+            currentMoneySkinId = 'defaultMoney';
+            currentBananaSkinId = 'defaultBanana';
+            currentMonkeySkinId = 'defaultMonkey';
+            currentThemeSkinId = 'classicTheme';
+            currentEnvironmentSkinId = 'plainsBiome';
+
+            shopMessage.textContent = ''; // Clear any shop messages
+            applyTheme(currentThemeSkinId); // Apply the default theme
+            applyEnvironment(currentEnvironmentSkinId); // Apply the default environment
+            updateScore(); // Update the score display and button states
+            gameArea.querySelectorAll('.banana').forEach(b => b.remove()); // Remove all bananas
+            startGame(); // Start the game with initial settings
+            startAutoCollect(); // Start auto-collect (will be off if rate is 0)
+        }
+
+        // Function to display a temporary message in the shop or promo box
+        function displayMessage(element, message, isError = false) {
+            element.textContent = message;
+            element.style.color = isError ? '#c62828' : '#388e3c'; // Red for error, green for success
+            setTimeout(() => {
+                element.textContent = '';
+            }, 3000); // Clear message after 3 seconds
+        }
+
+
+        // Function to check and update the disabled state of benefit buttons (upgrades)
+        function checkBenefitButtons() {
+            buyFasterBananaBtn.disabled = score < fasterBananaUpgradeCost;
+            buyBiggerBananaBtn.disabled = score < biggerBananaUpgradeCost;
+            buyAutoCollectBtn.disabled = score < autoCollectUpgradeCost; // Check auto collect button state
+        }
+
+        // Function to update the display and state of all skin buttons
+        function updateSkinButtons() {
+            // Helper to update buttons for a given skin category
+            const updateCategoryButtons = (container, skinsData) => {
+                container.querySelectorAll('button').forEach(button => {
+                    const skinId = button.dataset.skinId;
+                    const skin = skinsData[skinId];
+                    if (skin.equipped) {
+                        button.textContent = 'Equipped';
+                        button.disabled = true;
+                        button.classList.add('equipped');
+                    } else if (skin.purchased) {
+                        button.textContent = 'Equip';
+                        button.disabled = false;
+                        button.classList.remove('equipped');
+                    } else {
+                        button.textContent = 'Buy';
+                        button.disabled = score < skin.cost;
+                        button.classList.remove('equipped');
+                    }
+                });
+            };
+
+            updateCategoryButtons(moneySkinsContainer, moneySkins);
+            updateCategoryButtons(bananaSkinsContainer, bananaSkins);
+            updateCategoryButtons(monkeySkinsContainer, monkeySkins);
+            updateCategoryButtons(themeSkinsContainer, themeSkins);
+            updateCategoryButtons(environmentSkinsContainer, environmentSkins);
+        }
+
+        // --- Event Listeners for Upgrades ---
+        buyFasterBananaBtn.addEventListener('click', () => {
+            if (score >= fasterBananaUpgradeCost) {
+                score -= fasterBananaUpgradeCost;
+                bananaSpawnSpeed = Math.max(200, bananaSpawnSpeed - 200);
+                fasterBananaUpgradeCost = Math.round(fasterBananaUpgradeCost * 1.5);
+                fasterBananaCostDisplay.textContent = fasterBananaUpgradeCost;
+                fasterBananaUpgradesBought++; // Increment counter
+                displayMessage(shopMessage, 'Faster Bananas purchased! Bananas will now spawn quicker!', false);
+                updateScore();
+                startGame(); // Restart interval with new speed
+            } else {
+                displayMessage(shopMessage, 'Not enough money for Faster Bananas!', true);
+            }
+        });
+
+        buyBiggerBananaBtn.addEventListener('click', () => {
+            if (score >= biggerBananaUpgradeCost) {
+                score -= biggerBananaUpgradeCost;
+                bananaValue += 10;
+                biggerBananaUpgradeCost = Math.round(biggerBananaUpgradeCost * 1.5);
+                biggerBananaCostDisplay.textContent = biggerBananaUpgradeCost;
+                biggerBananaUpgradesBought++; // Increment counter
+                displayMessage(shopMessage, 'Bigger Bananas purchased! Each banana is now worth more!', false);
+                updateScore();
+            } else {
+                displayMessage(shopMessage, 'Not enough money for Bigger Bananas!', true);
+            }
+        });
+
+        buyAutoCollectBtn.addEventListener('click', () => {
+            if (score >= autoCollectUpgradeCost) {
+                score -= autoCollectUpgradeCost;
+                autoCollectRate += 0.5; // Increase auto collect rate
+                autoCollectUpgradeCost = Math.round(autoCollectUpgradeCost * 1.8); // Make subsequent upgrades more expensive
+                autoCollectCostDisplay.textContent = autoCollectUpgradeCost;
+                autoCollectUpgradesBought++; // Increment auto collect counter
+                displayMessage(shopMessage, `Auto Collect upgraded! Now collecting ${autoCollectRate.toFixed(1)} / sec!`, false);
+                updateScore();
+                startAutoCollect(); // Restart auto collect interval with new rate
+            } else {
+                displayMessage(shopMessage, 'Not enough money for Auto Collect!', true);
+            }
+        });
+
+        // --- Event Listeners for Skins (using event delegation) ---
+        moneySkinsContainer.addEventListener('click', (event) => {
+            const button = event.target.closest('button');
+            if (!button || button.disabled) return;
+
+            const skinId = button.dataset.skinId;
+            const skin = moneySkins[skinId];
+
+            if (skin.purchased) {
+                for (const key in moneySkins) {
+                    moneySkins[key].equipped = false;
+                }
+                skin.equipped = true;
+                currentMoneySkinId = skinId;
+                displayMessage(shopMessage, `${skin.symbol} money skin equipped!`, false);
+            } else if (score >= skin.cost) {
+                score -= skin.cost;
+                skin.purchased = true;
+                for (const key in moneySkins) {
+                    moneySkins[key].equipped = false;
+                }
+                skin.equipped = true;
+                currentMoneySkinId = skinId;
+                displayMessage(shopMessage, `Purchased and equipped ${skin.symbol} money skin!`, false);
+            } else {
+                displayMessage(shopMessage, 'Not enough money for this skin!', true);
+            }
+            updateScore();
+        });
+
+        bananaSkinsContainer.addEventListener('click', (event) => {
+            const button = event.target.closest('button');
+            if (!button || button.disabled) return;
+
+            const skinId = button.dataset.skinId;
+            const skin = bananaSkins[skinId];
+
+            if (skin.purchased) {
+                for (const key in bananaSkins) {
+                    bananaSkins[key].equipped = false;
+                }
+                skin.equipped = true;
+                currentBananaSkinId = skinId;
+                displayMessage(shopMessage, `${skin.symbol} banana skin equipped!`, false);
+            } else if (score >= skin.cost) {
+                score -= skin.cost;
+                skin.purchased = true;
+                for (const key in bananaSkins) {
+                    bananaSkins[key].equipped = false;
+                }
+                skin.equipped = true;
+                currentBananaSkinId = skinId;
+                displayMessage(shopMessage, `Purchased and equipped ${skin.symbol} banana skin!`, false);
+            } else {
+                displayMessage(shopMessage, 'Not enough money for this skin!', true);
+            }
+            updateScore();
+        });
+
+        monkeySkinsContainer.addEventListener('click', (event) => {
+            const button = event.target.closest('button');
+            if (!button || button.disabled) return;
+
+            const skinId = button.dataset.skinId;
+            const skin = monkeySkins[skinId];
+
+            if (skin.purchased) {
+                for (const key in monkeySkins) {
+                    monkeySkins[key].equipped = false;
+                }
+                skin.equipped = true;
+                currentMonkeySkinId = skinId;
+                displayMessage(shopMessage, `${skin.symbol} Lil Kong skin equipped!`, false);
+            } else if (score >= skin.cost) {
+                score -= skin.cost;
+                skin.purchased = true;
+                for (const key in monkeySkins) {
+                    monkeySkins[key].equipped = false;
+                }
+                skin.equipped = true;
+                currentMonkeySkinId = skinId;
+                displayMessage(shopMessage, `Purchased and equipped ${skin.symbol} Lil Kong skin!`, false);
+            } else {
+                displayMessage(shopMessage, 'Not enough money for this skin!', true);
+            }
+            updateScore();
+        });
+
+        themeSkinsContainer.addEventListener('click', (event) => {
+            const button = event.target.closest('button');
+            if (!button || button.disabled) return;
+
+            const skinId = button.dataset.skinId;
+            const theme = themeSkins[skinId];
+
+            if (theme.purchased) {
+                for (const key in themeSkins) {
+                    themeSkins[key].equipped = false;
+                }
+                theme.equipped = true;
+                currentThemeSkinId = skinId;
+                applyTheme(currentThemeSkinId);
+                displayMessage(shopMessage, `${theme.name} equipped!`, false);
+            } else if (score >= theme.cost) {
+                score -= theme.cost;
+                theme.purchased = true;
+                for (const key in themeSkins) {
+                    themeSkins[key].equipped = false;
+                }
+                theme.equipped = true;
+                currentThemeSkinId = skinId;
+                applyTheme(currentThemeSkinId);
+                displayMessage(shopMessage, `Purchased and equipped ${theme.name}!`, false);
+            } else {
+                displayMessage(shopMessage, 'Not enough money for this theme!', true);
+            }
+            updateScore();
+        });
+
+        environmentSkinsContainer.addEventListener('click', (event) => {
+            const button = event.target.closest('button');
+            if (!button || button.disabled) return;
+
+            const skinId = button.dataset.skinId;
+            const env = environmentSkins[skinId];
+
+            if (env.purchased) {
+                for (const key in environmentSkins) {
+                    environmentSkins[key].equipped = false;
+                }
+                env.equipped = true;
+                currentEnvironmentSkinId = skinId;
+                applyEnvironment(currentEnvironmentSkinId);
+                displayMessage(shopMessage, `${env.name} equipped!`, false);
+            } else if (score >= env.cost) {
+                score -= env.cost;
+                env.purchased = true;
+                for (const key in environmentSkins) {
+                    environmentSkins[key].equipped = false;
+                }
+                env.equipped = true;
+                currentEnvironmentSkinId = skinId;
+                applyEnvironment(currentEnvironmentSkinId);
+                displayMessage(shopMessage, `Purchased and equipped ${env.name}!`, false);
+            } else {
+                displayMessage(shopMessage, 'Not enough money for this environment!', true);
+            }
+            updateScore();
+        });
+
+        // Event listener for Promo Code
+        applyPromoCodeBtn.addEventListener('click', () => {
+            const enteredCode = promoCodeInput.value.trim();
+
+            if (enteredCode === "back_to_monkey") {
+                if (!usedPromoCodes.back_to_monkey) {
+                    score += 1000;
+                    usedPromoCodes.back_to_monkey = true;
+                    displayMessage(promoMessage, "Promo code applied! You received $1000!", false);
+                    updateScore();
+                } else {
+                    displayMessage(promoMessage, "This promo code has already been used.", true);
+                }
+            } else {
+                displayMessage(promoMessage, "Invalid promo code.", true);
+            }
+            promoCodeInput.value = ''; // Clear the input field
+        });
+
+        // Fullscreen functionality
+        fullscreenBtn.addEventListener('click', () => {
+            try {
+                if (gameArea.requestFullscreen) {
+                    gameArea.requestFullscreen();
+                } else if (gameArea.webkitRequestFullscreen) { /* Safari */
+                    gameArea.webkitRequestFullscreen();
+                } else if (gameArea.msRequestFullscreen) { /* IE11 */
+                    gameArea.msRequestFullscreen();
+                } else {
+                    // Fallback message if no fullscreen API is supported
+                    displayMessage(shopMessage, 'Fullscreen is not supported by your browser.', true);
+                    console.error('Fullscreen API not supported by this browser.');
+                }
+            }
+            catch (error) {
+                // Catch any errors that occur during the fullscreen request
+                displayMessage(shopMessage, 'Failed to enter fullscreen. Check console for details.', true);
+                console.error('Fullscreen request failed:', error);
+            }
+        });
+
+        normalViewBtn.addEventListener('click', () => {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) { /* Safari */
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) { /* IE11 */
+                document.msExitFullscreen();
+            }
+        });
+
+        // Listen for fullscreen change events to update UI
+        document.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement === gameArea) {
+                // Game area is in fullscreen
+                gameArea.classList.add('is-fullscreen');
+                smartBar.style.display = 'flex'; // Shows the SmartBar
+                fullscreenBtn.style.display = 'none'; // Hide original fullscreen button
+                applyEnvironment(currentEnvironmentSkinId); // Reapply environment for fullscreen dimensions
+                updateScore(); // Update fullscreen score when entering fullscreen
+            } else {
+                // Game area exited fullscreen
+                gameArea.classList.remove('is-fullscreen');
+                smartBar.style.display = 'none'; // Hides the SmartBar
+                fullscreenBtn.style.display = 'flex'; // Show original fullscreen button
+                applyEnvironment(currentEnvironmentSkinId); // Reapply environment for normal dimensions
+            }
+        });
+
+
+        // Start the game when the window loads
+        window.onload = function() {
+            initializeGame();
+        };
+    </script>
+</body>
+</html>
+�

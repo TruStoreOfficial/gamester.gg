@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pong Game</title>
+    <style>
+        /* Body styling to center the game canvas, controls, and button */
+        body {
+            background-color: #000; /* Black background */
+            display: flex;
+            flex-direction: column; /* Arrange items vertically */
+            justify-content: center; /* Center vertically */
+            align-items: center; /* Center horizontally */
+            height: 100vh; /* Full viewport height */
+            margin: 0;
+            overflow: hidden; /* Prevent scrollbars */
+            font-family: 'Inter', sans-serif; /* Use Inter font */
+            color: #fff; /* White text color */
+        }
+
+        /* Canvas styling */
+        canvas {
+            background-color: #000; /* Black background for the game area */
+            border: 2px solid #fff; /* White border around the canvas */
+            display: block; /* Remove extra space below canvas */
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.5); /* Subtle glow effect */
+            border-radius: 8px; /* Slightly rounded corners */
+            max-width: 90vw; /* Responsive width */
+            max-height: 80vh; /* Responsive height, leaving space for controls/button */
+            margin-bottom: 20px; /* Space below the canvas */
+        }
+
+        /* Game controls and button container */
+        .game-info-and-controls {
+            display: flex;
+            flex-direction: column; /* Stack info and button vertically */
+            align-items: center;
+            gap: 15px; /* Space between controls and button */
+        }
+
+        /* Controls display text */
+        .controls-display {
+            font-size: 1.1em;
+            text-align: center;
+            line-height: 1.5;
+            color: #eee;
+        }
+
+        /* Button styling */
+        button {
+            padding: 12px 25px;
+            font-size: 1.2em;
+            font-family: 'Inter', sans-serif;
+            color: #fff;
+            background-color: #4CAF50; /* Green color */
+            border: none;
+            border-radius: 25px; /* Rounded corners */
+            cursor: pointer;
+            outline: none;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 255, 0, 0.4); /* Green glow effect */
+        }
+
+        button:hover {
+            background-color: #45a049; /* Darker green on hover */
+            transform: translateY(-2px); /* Slight lift effect */
+            box-shadow: 0 6px 20px rgba(0, 255, 0, 0.6); /* More intense glow on hover */
+        }
+
+        button:active {
+            background-color: #3e8e41; /* Even darker green on active */
+            transform: translateY(0); /* Push down effect */
+            box-shadow: 0 2px 10px rgba(0, 255, 0, 0.3); /* Less intense glow on active */
+        }
+    </style>
+</head>
+<body>
+    <canvas id="pongCanvas" width="800" height="600"></canvas>
+
+    <div class="game-info-and-controls">
+        <div class="controls-display">
+            <p><strong>Controls:</strong></p>
+            <p>Move paddle UP: <strong>Arrow Up ↑</strong></p>
+            <p>Move paddle DOWN: <strong>Arrow Down ↓</strong></p>
+        </div>
+        <button id="resetButton">Reset Game</button>
+    </div>
+
+    <script>
+        // Get the canvas and its 2D rendering context
+        const canvas = document.getElementById('pongCanvas');
+        const ctx = canvas.getContext('2d');
+        const resetButton = document.getElementById('resetButton');
+
+        // Game dimensions for responsive scaling
+        let gameWidth = canvas.width;
+        let gameHeight = canvas.height;
+
+        // Paddle properties
+        const paddleWidth = 10;
+        const paddleHeight = 100;
+        const playerPaddleSpeed = 7;
+        const computerPaddleSpeed = 4; // Slower for a challenging AI
+
+        // Initial positions for player and computer paddles
+        let playerY = (gameHeight - paddleHeight) / 2;
+        let computerY = (gameHeight - paddleHeight) / 2;
+
+        // Ball properties
+        const ballSize = 10;
+        let ballX = gameWidth / 2;
+        let ballY = gameHeight / 2;
+        let ballSpeedX = 5; // Initial horizontal speed
+        let ballSpeedY = 5; // Initial vertical speed (will be randomized on reset)
+
+        // Scores
+        let playerScore = 0;
+        let computerScore = 0;
+
+        // Input flags for player paddle movement
+        let upPressed = false;
+        let downPressed = false;
+
+        // --- Event Listeners for Player Input ---
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowUp') {
+                upPressed = true;
+            } else if (e.key === 'ArrowDown') {
+                downPressed = true;
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowUp') {
+                upPressed = false;
+            } else if (e.key === 'ArrowDown') {
+                downPressed = false;
+            }
+        });
+
+        // --- Drawing Functions ---
+        /**
+         * Draws a rectangle on the canvas.
+         * @param {number} x - The x-coordinate of the top-left corner.
+         * @param {number} y - The y-coordinate of the top-left corner.
+         * @param {number} width - The width of the rectangle.
+         * @param {number} height - The height of the rectangle.
+         * @param {string} color - The fill color of the rectangle.
+         */
+        function drawRect(x, y, width, height, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, width, height);
+        }
+
+        /**
+         * Draws a circle on the canvas.
+         * @param {number} x - The x-coordinate of the circle's center.
+         * @param {number} y - The y-coordinate of the circle's center.
+         * @param {number} radius - The radius of the circle.
+         * @param {string} color - The fill color of the circle.
+         */
+        function drawCircle(x, y, radius, color) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2, false);
+            ctx.fill();
+        }
+
+        /**
+         * Draws text on the canvas.
+         * @param {string} text - The text string to draw.
+         * @param {number} x - The x-coordinate of the text.
+         * @param {number} y - The y-coordinate of the text.
+         * @param {string} color - The color of the text.
+         * @param {string} fontSize - The font size and family (e.g., '40px Arial').
+         */
+        function drawText(text, x, y, color = 'white', fontSize = '40px Inter') {
+            ctx.fillStyle = color;
+            ctx.font = fontSize;
+            ctx.textAlign = 'center';
+            ctx.fillText(text, x, y);
+        }
+
+        // --- Game Logic Updates ---
+        /**
+         * Resets the ball to the center of the canvas after a score.
+         * Randomizes the initial ball speed direction.
+         */
+        function resetBall() {
+            ballX = gameWidth / 2;
+            ballY = gameHeight / 2;
+            // Randomly choose initial horizontal direction (-1 or 1)
+            ballSpeedX = (Math.random() < 0.5 ? 1 : -1) * 5;
+            // Random vertical speed between -5 and 5
+            ballSpeedY = (Math.random() * 10) - 5;
+        }
+
+        /**
+         * Resets the entire game state: scores, ball, and paddle positions.
+         */
+        function resetGame() {
+            playerScore = 0;
+            computerScore = 0;
+            playerY = (gameHeight - paddleHeight) / 2;
+            computerY = (gameHeight - paddleHeight) / 2;
+            resetBall(); // Reset ball position and initial speed
+            // Re-draw immediately to show reset state
+            draw();
+        }
+
+
+        /**
+         * Updates the game state for each frame.
+         */
+        function update() {
+            // Update ball position
+            ballX += ballSpeedX;
+            ballY += ballSpeedY;
+
+            // Ball collision with top/bottom walls
+            if (ballY - ballSize < 0 || ballY + ballSize > gameHeight) {
+                ballSpeedY = -ballSpeedY; // Reverse vertical direction
+            }
+
+            // Ball collision with player paddle
+            if (ballX - ballSize < paddleWidth && // Ball is at player's side
+                ballY > playerY && ballY < playerY + paddleHeight) { // Ball is within paddle's height
+                ballSpeedX = -ballSpeedX; // Reverse horizontal direction
+                // Adjust vertical speed based on where it hit the paddle
+                let deltaY = ballY - (playerY + paddleHeight / 2);
+                ballSpeedY = deltaY * 0.35; // Make it bounce more dynamically
+            }
+
+            // Ball collision with computer paddle
+            if (ballX + ballSize > gameWidth - paddleWidth && // Ball is at computer's side
+                ballY > computerY && ballY < computerY + paddleHeight) { // Ball is within paddle's height
+                ballSpeedX = -ballSpeedX; // Reverse horizontal direction
+                // Adjust vertical speed based on where it hit the paddle
+                let deltaY = ballY - (computerY + paddleHeight / 2);
+                ballSpeedY = deltaY * 0.35; // Make it bounce more dynamically
+            }
+
+            // Scoring
+            if (ballX - ballSize < 0) { // Ball went past player's paddle (computer scores)
+                computerScore++;
+                resetBall();
+            } else if (ballX + ballSize > gameWidth) { // Ball went past computer's paddle (player scores)
+                playerScore++;
+                resetBall();
+            }
+
+            // Update player paddle position based on input
+            if (upPressed && playerY > 0) {
+                playerY -= playerPaddleSpeed;
+            }
+            if (downPressed && playerY < gameHeight - paddleHeight) {
+                playerY += playerPaddleSpeed;
+            }
+
+            // Basic computer AI: follow the ball
+            // The computer paddle tries to move towards the ball's Y position
+            if (computerY + paddleHeight / 2 < ballY) {
+                computerY += computerPaddleSpeed;
+            } else if (computerY + paddleHeight / 2 > ballY) {
+                computerY -= computerPaddleSpeed;
+            }
+
+            // Keep computer paddle within bounds
+            if (computerY < 0) computerY = 0;
+            if (computerY > gameHeight - paddleHeight) computerY = gameHeight - paddleHeight;
+        }
+
+        /**
+         * Draws all game elements on the canvas.
+         */
+        function draw() {
+            // Clear the canvas
+            drawRect(0, 0, gameWidth, gameHeight, 'black');
+
+            // Draw paddles
+            drawRect(0, playerY, paddleWidth, paddleHeight, 'white'); // Player paddle (left)
+            drawRect(gameWidth - paddleWidth, computerY, paddleWidth, paddleHeight, 'white'); // Computer paddle (right)
+
+            // Draw ball
+            drawCircle(ballX, ballY, ballSize, 'white');
+
+            // Draw scores
+            drawText(playerScore, gameWidth / 4, 50, 'white', '60px Inter');
+            drawText(computerScore, gameWidth * 3 / 4, 50, 'white', '60px Inter');
+
+            // Draw dashed line in the middle
+            ctx.beginPath();
+            ctx.setLineDash([10, 10]); // Dash length, space length
+            ctx.moveTo(gameWidth / 2, 0);
+            ctx.lineTo(gameWidth / 2, gameHeight);
+            ctx.strokeStyle = 'white';
+            ctx.stroke();
+            ctx.setLineDash([]); // Reset line dash to solid
+        }
+
+        /**
+         * The main game loop. Updates game state and redraws elements.
+         * @param {DOMHighResTimeStamp} currentTime - The current time provided by requestAnimationFrame.
+         */
+        function gameLoop(currentTime) {
+            update(); // Update game logic
+            draw();   // Draw game elements
+            requestAnimationFrame(gameLoop); // Request next frame
+        }
+
+        /**
+         * Handles resizing the canvas to be responsive.
+         */
+        function resizeCanvas() {
+            // Adjust canvas dimensions to fit the window while maintaining aspect ratio
+            const aspectRatio = 800 / 600; // Original aspect ratio
+            const windowWidth = window.innerWidth * 0.9; // 90% of window width
+            const windowHeight = window.innerHeight * 0.9; // 90% of window height
+
+            if (windowWidth / windowHeight > aspectRatio) {
+                // Window is wider than canvas aspect ratio, fit by height
+                canvas.height = windowHeight * 0.8; // Use 80% to leave space for controls
+                canvas.width = canvas.height * aspectRatio;
+            } else {
+                // Window is taller than canvas aspect ratio, fit by width
+                canvas.width = windowWidth;
+                canvas.height = windowWidth / aspectRatio * 0.8; // Use 80% to leave space for controls
+            }
+
+            // Update internal game dimensions
+            gameWidth = canvas.width;
+            gameHeight = canvas.height;
+
+            // Recalculate paddle and ball positions to scale with new canvas size
+            // This is a basic scaling and might need more refinement for complex games
+            // For Pong, relative positions are fairly straightforward
+            playerY = (gameHeight - paddleHeight) / 2;
+            computerY = (gameHeight - paddleHeight) / 2;
+            // Only adjust ball position if it's out of bounds after resize, otherwise keep current relative position
+            if (ballX > gameWidth || ballY > gameHeight || ballX < 0 || ballY < 0) {
+                 ballX = gameWidth / 2;
+                 ballY = gameHeight / 2;
+            }
+
+
+            // Redraw everything after resize
+            draw();
+        }
+
+        // --- Initialize Game ---
+        // Start the game loop when the window loads
+        window.onload = () => {
+            resizeCanvas(); // Initial resize to fit the window
+            window.addEventListener('resize', resizeCanvas); // Add resize listener
+            resetButton.addEventListener('click', resetGame); // Add click listener for reset button
+            requestAnimationFrame(gameLoop); // Start the game loop
+        };
+    </script>
+</body>
+</html>

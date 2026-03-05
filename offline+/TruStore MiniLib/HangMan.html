@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hangman Game</title>
+    <style>
+        /* Base styles */
+        body {
+            font-family: 'Inter', Arial, sans-serif; /* Using Inter font */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            transition: background-color 0.3s, color 0.3s; /* Smooth transition for dark mode */
+
+            /* Light mode variables */
+            --bg-color: #f0f0f0;
+            --container-bg: #fff;
+            --text-color: #333;
+            --border-color: #ccc;
+            --button-bg: #e0e0e0;
+            --button-text: #333;
+            --button-disabled-bg: #f0f0f0;
+            --button-disabled-text: #aaa;
+            --primary-button-bg: #007bff;
+            --primary-button-text: white;
+            --gallows-color: black;
+            --message-color-win: green;
+            --message-color-lose: red;
+        }
+
+        /* Dark mode styles */
+        body.dark-mode {
+            --bg-color: #2c2c2c;
+            --container-bg: #3c3c3c;
+            --text-color: #f0f0f0;
+            --border-color: #555;
+            --button-bg: #4a4a4a;
+            --button-text: #e0e0e0;
+            --button-disabled-bg: #333;
+            --button-disabled-text: #777;
+            --primary-button-bg: #6a0dad; /* A purplish tone for dark mode primary */
+            --primary-button-text: white;
+            --gallows-color: #bbb; /* Lighter gallows in dark mode */
+            --message-color-win: #90ee90; /* Lighter green */
+            --message-color-lose: #ff6347; /* Lighter red */
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        #game-container {
+            background-color: var(--container-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            max-width: 90%; /* Responsive width */
+            width: 500px; /* Max width for larger screens */
+            box-sizing: border-box; /* Include padding in width */
+        }
+
+        h1 {
+            color: var(--text-color);
+            margin-bottom: 20px;
+        }
+
+        #word-display {
+            font-size: 2.5em; /* Slightly larger */
+            letter-spacing: 5px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            color: var(--text-color);
+            word-wrap: break-word; /* Ensure long words wrap */
+        }
+
+        #letters-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px; /* Space between buttons */
+            margin-top: 20px;
+        }
+
+        .letter-button {
+            width: 45px; /* Slightly larger buttons */
+            height: 45px;
+            font-size: 1.3em;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+            border-radius: 6px; /* More rounded corners */
+            background-color: var(--button-bg);
+            color: var(--button-text);
+            transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Subtle shadow */
+        }
+
+        .letter-button:hover:not(:disabled) {
+            background-color: var(--primary-button-bg);
+            color: var(--primary-button-text);
+            border-color: var(--primary-button-bg);
+        }
+
+        .letter-button:disabled {
+            background-color: var(--button-disabled-bg);
+            color: var(--button-disabled-text);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        #message {
+            margin-top: 25px;
+            font-size: 1.4em; /* Larger message */
+            font-weight: bold;
+        }
+
+        #reset-button {
+            margin-top: 25px;
+            padding: 12px 25px; /* Larger padding */
+            font-size: 1.3em;
+            cursor: pointer;
+            background-color: var(--primary-button-bg);
+            color: var(--primary-button-text);
+            border: none;
+            border-radius: 6px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        #reset-button:hover {
+            background-color: var(--primary-button-bg); /* Keep consistency with var */
+            transform: translateY(-2px); /* Slight lift on hover */
+        }
+
+        #hang-man-drawing {
+            margin: 20px auto; /* Center the drawing */
+            border: 2px solid var(--border-color); /* Thicker border */
+            width: 250px; /* Larger drawing area */
+            height: 250px;
+            position: relative;
+            background-color: var(--container-bg); /* Background matches container */
+            border-radius: 8px; /* Rounded corners */
+            overflow: hidden; /* Ensure parts don't overflow */
+        }
+
+        .hang-part {
+            background-color: var(--gallows-color);
+            position: absolute;
+            transition: opacity 0.3s; /* Smooth transition for showing parts */
+        }
+
+        /* Hangman parts styling (adjusted for larger drawing) */
+        #gallows-base { width: 100%; height: 6px; bottom: 0; left: 0; }
+        #gallows-pole { width: 6px; height: 220px; bottom: 0; left: 30px; }
+        #gallows-top { width: 120px; height: 6px; top: 20px; left: 30px; }
+        #gallows-rope { width: 6px; height: 40px; top: 20px; left: 150px; }
+
+        #head { width: 40px; height: 40px; border-radius: 50%; border: 4px solid var(--gallows-color); top: 60px; left: 130px; background-color: transparent; }
+        #body { width: 6px; height: 65px; top: 100px; left: 152px; }
+        #arm-left { width: 40px; height: 6px; top: 110px; left: 115px; transform: rotate(45deg); }
+        #arm-right { width: 40px; height: 6px; top: 110px; left: 150px; transform: rotate(-45deg); }
+        #leg-left { width: 40px; height: 6px; top: 160px; left: 115px; transform: rotate(-45deg); }
+        #leg-right { width: 40px; height: 6px; top: 160px; left: 150px; transform: rotate(45deg); }
+
+        /* Dark mode toggle button */
+        #dark-mode-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 15px;
+            font-size: 1em;
+            background-color: var(--primary-button-bg);
+            color: var(--primary-button-text);
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        #dark-mode-toggle:hover {
+            transform: translateY(-1px);
+            opacity: 0.9;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            #game-container {
+                padding: 15px;
+            }
+            h1 {
+                font-size: 1.8em;
+            }
+            #word-display {
+                font-size: 1.8em;
+                letter-spacing: 3px;
+            }
+            .letter-button {
+                width: 38px;
+                height: 38px;
+                font-size: 1.1em;
+                margin: 4px;
+            }
+            #hang-man-drawing {
+                width: 200px;
+                height: 200px;
+            }
+            /* Adjust hangman parts for smaller drawing */
+            #gallows-pole { height: 180px; left: 20px; }
+            #gallows-top { width: 100px; left: 20px; }
+            #gallows-rope { height: 30px; left: 120px; }
+
+            #head { width: 30px; height: 30px; top: 45px; left: 108px; }
+            #body { height: 50px; top: 78px; left: 121px; }
+            #arm-left { width: 30px; top: 85px; left: 95px; }
+            #arm-right { width: 30px; top: 85px; left: 120px; }
+            #leg-left { width: 30px; top: 125px; left: 95px; }
+            #leg-right { width: 30px; top: 125px; left: 120px; }
+
+            #message {
+                font-size: 1.1em;
+            }
+            #reset-button {
+                padding: 10px 20px;
+                font-size: 1.1em;
+            }
+            #dark-mode-toggle {
+                padding: 8px 12px;
+                font-size: 0.9em;
+                top: 10px;
+                right: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button id="dark-mode-toggle">Toggle Dark Mode</button>
+
+    <div id="game-container">
+        <h1>Hangman</h1>
+        <div id="word-display"></div>
+        <div id="hang-man-drawing">
+            <div id="gallows-base" class="hang-part"></div>
+            <div id="gallows-pole" class="hang-part"></div>
+            <div id="gallows-top" class="hang-part"></div>
+            <div id="gallows-rope" class="hang-part"></div>
+
+            <div id="head" class="hang-part" style="display: none;"></div>
+            <div id="body" class="hang-part" style="display: none;"></div>
+            <div id="arm-left" class="hang-part" style="display: none;"></div>
+            <div id="arm-right" class="hang-part" style="display: none;"></div>
+            <div id="leg-left" class="hang-part" style="display: none;"></div>
+            <div id="leg-right" class="hang-part" style="display: none;"></div>
+        </div>
+        <div id="letters-container"></div>
+        <div id="message"></div>
+        <button id="reset-button">Play Again</button>
+    </div>
+
+    <script>
+        // Array of words for the game
+        const words = ["JAVASCRIPT", "HTML", "CSS", "PROGRAMMING", "COMPUTER", "DEVELOPER", "WEBSITE", "ALGORITHM", "FRAMEWORK", "DATABASE", "FRONTEND", "BACKEND", "RESPONSIVE", "FUNCTION", "VARIABLE", "DEBUGGING"];
+        let selectedWord = ""; // The word to be guessed
+        let guessedWord = []; // Array to store the currently guessed letters (e.g., ["H", "_", "M", "_"])
+        let wrongGuesses = 0; // Counter for incorrect guesses
+        const maxWrongGuesses = 6; // Maximum allowed incorrect guesses (corresponds to hangman parts)
+
+        // DOM elements
+        const wordDisplay = document.getElementById("word-display");
+        const lettersContainer = document.getElementById("letters-container");
+        const messageDisplay = document.getElementById("message");
+        const resetButton = document.getElementById("reset-button");
+        const darkModeToggle = document.getElementById("dark-mode-toggle");
+
+        // Array of hangman body parts (in order of appearance)
+        const hangParts = [
+            document.getElementById("head"),
+            document.getElementById("body"),
+            document.getElementById("arm-left"),
+            document.getElementById("arm-right"),
+            document.getElementById("leg-left"),
+            document.getElementById("leg-right")
+        ];
+
+        /**
+         * Initializes the game state.
+         * Selects a new word, resets guessed letters, wrong guesses, and updates the UI.
+         */
+        function initializeGame() {
+            // Select a random word from the 'words' array
+            selectedWord = words[Math.floor(Math.random() * words.length)];
+            // Initialize guessedWord with underscores for each letter of the selected word
+            guessedWord = Array(selectedWord.length).fill("_");
+            wrongGuesses = 0; // Reset wrong guess counter
+
+            // Clear messages and hide the reset button
+            messageDisplay.textContent = "";
+            messageDisplay.style.color = "var(--text-color)"; // Reset message color
+            resetButton.style.display = "none";
+
+            renderWord(); // Display the initial underscores
+            createLetterButtons(); // Create/recreate letter buttons
+            hideHangParts(); // Hide all hangman parts
+        }
+
+        /**
+         * Renders the current state of the guessed word on the screen.
+         */
+        function renderWord() {
+            wordDisplay.textContent = guessedWord.join(" ");
+        }
+
+        /**
+         * Creates buttons for each letter of the alphabet (A-Z).
+         * Disables previously guessed letters and adds event listeners.
+         */
+        function createLetterButtons() {
+            lettersContainer.innerHTML = ""; // Clear existing buttons
+            for (let i = 65; i <= 90; i++) { // ASCII values for A-Z
+                const letter = String.fromCharCode(i);
+                const button = document.createElement("button");
+                button.textContent = letter;
+                button.classList.add("letter-button");
+                // Add click listener to handle a letter guess
+                button.addEventListener("click", () => handleGuess(letter, button));
+                lettersContainer.appendChild(button);
+            }
+        }
+
+        /**
+         * Handles a user's letter guess.
+         * Checks if the letter is in the word, updates the guessed word, and manages wrong guesses.
+         * @param {string} letter - The letter guessed by the user.
+         * @param {HTMLButtonElement} button - The button element corresponding to the guessed letter.
+         */
+        function handleGuess(letter, button) {
+            button.disabled = true; // Disable the button after it's clicked
+            let correctGuess = false;
+
+            // Check if the guessed letter exists in the selected word
+            for (let i = 0; i < selectedWord.length; i++) {
+                if (selectedWord[i] === letter) {
+                    guessedWord[i] = letter; // Reveal the letter
+                    correctGuess = true;
+                }
+            }
+            renderWord(); // Update the displayed word
+
+            if (correctGuess) {
+                // If the entire word has been guessed, the player wins
+                if (guessedWord.join("") === selectedWord) {
+                    messageDisplay.textContent = "You win! �";
+                    messageDisplay.style.color = "var(--message-color-win)";
+                    endGame(true);
+                }
+            } else {
+                wrongGuesses++; // Increment wrong guess count
+                showHangPart(wrongGuesses - 1); // Show the next hangman part
+
+                // If maximum wrong guesses reached, the player loses
+                if (wrongGuesses >= maxWrongGuesses) {
+                    messageDisplay.textContent = `You lose! The word was "${selectedWord}"`;
+                    messageDisplay.style.color = "var(--message-color-lose)";
+                    endGame(false);
+                }
+            }
+        }
+
+        /**
+         * Displays a specific hangman part based on the wrong guess index.
+         * @param {number} index - The index of the hangman part to show.
+         */
+        function showHangPart(index) {
+            if (index >= 0 && index < hangParts.length) {
+                hangParts[index].style.display = "block"; // Make the part visible
+            }
+        }
+
+        /**
+         * Hides all hangman parts.
+         */
+        function hideHangParts() {
+            hangParts.forEach(part => part.style.display = "none");
+        }
+
+        /**
+         * Ends the game, disabling letter buttons and showing the play again button.
+         * @param {boolean} win - True if the player won, false if lost.
+         */
+        function endGame(win) {
+            const letterButtons = document.querySelectorAll(".letter-button");
+            letterButtons.forEach(button => button.disabled = true); // Disable all letter buttons
+            resetButton.style.display = "block"; // Show the "Play Again" button
+        }
+
+        /**
+         * Toggles dark mode on and off.
+         * Stores the preference in localStorage.
+         */
+        function toggleDarkMode() {
+            document.body.classList.toggle("dark-mode");
+            const isDarkMode = document.body.classList.contains("dark-mode");
+            localStorage.setItem("darkMode", isDarkMode); // Save preference
+            darkModeToggle.textContent = isDarkMode ? "Light Mode" : "Dark Mode"; // Update button text
+        }
+
+        /**
+         * Applies the dark mode preference from localStorage when the page loads.
+         */
+        function applyDarkModePreference() {
+            const savedDarkMode = localStorage.getItem("darkMode");
+            if (savedDarkMode === "true") {
+                document.body.classList.add("dark-mode");
+                darkModeToggle.textContent = "Light Mode";
+            } else {
+                darkModeToggle.textContent = "Dark Mode";
+            }
+        }
+
+
+        // Event Listeners
+        resetButton.addEventListener("click", initializeGame);
+        darkModeToggle.addEventListener("click", toggleDarkMode);
+
+        // Initialize the game and apply dark mode preference when the page loads
+        document.addEventListener("DOMContentLoaded", () => {
+            applyDarkModePreference();
+            initializeGame();
+        });
+    </script>
+</body>
+</html>
+�
