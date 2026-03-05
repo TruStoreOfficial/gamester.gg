@@ -1,3 +1,2 @@
-# Warning
-Contains games for gamester.gg
-DO NOT DELETE!
+# WARNING
+Game Contents, DO NOT MODIFY THESE FILES
