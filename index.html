@@ -7,7 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* Modern fonts */
         @import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Outfit:wght@300;400;600;800;900&display=swap');
         
         :root {
@@ -33,7 +32,6 @@
 
         .logo-font { font-family: 'Unbounded', sans-serif; }
 
-        /* UI Enhancements */
         .glass-header {
             background: rgba(8, 8, 8, 0.6);
             backdrop-filter: blur(16px);
@@ -46,7 +44,6 @@
             border-right: 1px solid var(--border-color);
         }
 
-        /* Card Styles */
         .mighty-card { 
             background: var(--card-bg); 
             border: 1px solid var(--border-color); 
@@ -70,27 +67,18 @@
             box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 20px var(--accent-glow);
         }
         
-        .mighty-card:hover::before {
-            opacity: 1;
-        }
+        .mighty-card:hover::before { opacity: 1; }
 
-        .card-icon-wrapper {
-            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        .mighty-card:hover .card-icon-wrapper {
-            transform: scale(1.15) rotate(5deg);
-        }
+        .card-icon-wrapper { transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .mighty-card:hover .card-icon-wrapper { transform: scale(1.15) rotate(5deg); }
 
-        /* Performance Engine (Low End Mode) */
         body.low-end * { 
             transition: none !important; 
             backdrop-filter: none !important; 
             box-shadow: none !important; 
             animation: none !important;
         }
-        body.low-end .glass-header {
-            background: #080808;
-        }
+        body.low-end .glass-header { background: #080808; }
 
         .nav-item { 
             display: flex; 
@@ -104,10 +92,7 @@
             transition: all 0.2s ease;
             position: relative;
         }
-        .nav-item:hover { 
-            background: rgba(255, 255, 255, 0.03); 
-            color: #fff; 
-        }
+        .nav-item:hover { background: rgba(255, 255, 255, 0.03); color: #fff; }
         .nav-item.active { 
             background: rgba(0, 255, 170, 0.1); 
             color: var(--accent); 
@@ -126,7 +111,6 @@
             box-shadow: 0 0 10px var(--accent);
         }
 
-        /* Overlay */
         #overlay { 
             display: none; 
             position: fixed; 
@@ -136,9 +120,7 @@
             opacity: 0;
             transition: opacity 0.3s ease;
         }
-        #overlay.active {
-            opacity: 1;
-        }
+        #overlay.active { opacity: 1; }
         
         .loading-screen {
             position: absolute;
@@ -162,13 +144,11 @@
             background: #000;
         }
 
-        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: var(--bg-color); }
         ::-webkit-scrollbar-thumb { background: #222; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #333; }
 
-        /* Loader */
         .spinner {
             width: 40px;
             height: 40px;
@@ -179,10 +159,8 @@
         }
         @keyframes spin { 100% { transform: rotate(360deg); } }
 
-        /* Glow utilities */
         .text-glow { text-shadow: 0 0 15px rgba(0, 255, 170, 0.5); }
         
-        /* Search Bar */
         .search-container input:focus {
             box-shadow: 0 0 0 2px rgba(0,255,170,0.2), 0 0 15px rgba(0,255,170,0.1);
         }
@@ -195,12 +173,11 @@
             <div class="w-10 h-10 bg-gradient-to-br from-[#00ffaa] to-[#00b377] rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(0,255,170,0.4)]">
                 <i class="fa fa-gamepad text-black text-xl"></i>
             </div>
-            <h1 class="logo-font text-2xl font-black uppercase tracking-tighter">
+            <h1 class="logo-font text-xl md:text-2xl font-black uppercase tracking-tighter">
                 gamester<span class="text-[#00ffaa] text-glow">.gg</span>
             </h1>
         </div>
         
-        <!-- Desktop Search -->
         <div class="flex-1 max-w-2xl mx-8 relative hidden md:block search-container">
             <i class="fa fa-search absolute left-5 top-1/2 -translate-y-1/2 text-gray-500"></i>
             <input type="text" id="searchInput" placeholder="Search 400+ Games & Apps..." 
@@ -224,7 +201,6 @@
         </div>
     </header>
 
-    <!-- Mobile Search -->
     <div class="p-4 glass-header border-t border-white/5 md:hidden">
         <div class="relative search-container">
             <i class="fa fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"></i>
@@ -259,7 +235,7 @@
                         <i class="fa fa-cloud-arrow-down text-[10px] opacity-0 group-hover:opacity-100 text-gray-500 transition-opacity"></i>
                     </div>
                     <div onclick="setTab('MiniLib')" class="nav-item group flex justify-between items-center">
-                        <div class="flex items-center gap-3"><i class="fa fa-book-atlas w-5 text-center text-emerald-400 group-hover:text-emerald-300 transition-colors"></i> TruStore Mini</div>
+                        <div class="flex items-center gap-3"><i class="fa fa-book-atlas w-5 text-center text-emerald-400 group-hover:text-emerald-300 transition-colors"></i> TruStore MiniLib</div>
                         <i class="fa fa-cloud-arrow-down text-[10px] opacity-0 group-hover:opacity-100 text-gray-500 transition-opacity"></i>
                     </div>
                     <div onclick="setTab('Plus')" class="nav-item group flex justify-between items-center">
@@ -280,26 +256,19 @@
             </div>
         </aside>
 
-        <!-- Main Content Area -->
         <main class="flex-1 overflow-y-auto p-4 md:p-8 bg-black">
-            <!-- Dynamic State Headers -->
             <div id="categoryHeader" class="mb-8 hidden">
                 <h2 id="categoryTitle" class="text-3xl font-black logo-font capitalize text-white mb-2">Library</h2>
                 <p id="categoryDesc" class="text-gray-400 text-sm">Explore all available games and applications.</p>
             </div>
 
-            <!-- Loader for fetching -->
             <div id="fetchLoader" class="hidden flex-col items-center justify-center py-20">
                 <div class="spinner mb-4"></div>
                 <p class="text-gray-400 font-bold tracking-widest uppercase text-xs">Syncing Github Vault...</p>
             </div>
 
-            <!-- Grid -->
-            <div id="grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4 md:gap-6 pb-20">
-                <!-- Cards injected here -->
-            </div>
+            <div id="grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4 md:gap-6 pb-20"></div>
             
-            <!-- Empty State -->
             <div id="emptyState" class="hidden flex-col items-center justify-center py-20 text-center">
                 <div class="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-4">
                     <i class="fa fa-ghost text-3xl text-gray-600"></i>
@@ -310,7 +279,6 @@
         </main>
     </div>
 
-    <!-- Settings Modal -->
     <div id="settings" class="hidden fixed inset-0 z-[10001] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md opacity-0 transition-opacity duration-300">
         <div class="bg-[#111111] border border-white/10 w-full max-w-md rounded-3xl p-8 shadow-2xl transform scale-95 transition-transform duration-300" id="settingsPanel">
             <div class="flex justify-between items-center mb-8">
@@ -327,7 +295,7 @@
                     <label class="flex items-center justify-between cursor-pointer group">
                         <div>
                             <span class="block font-bold text-white group-hover:text-[#00ffaa] transition-colors">Low End Device Mode</span>
-                            <span class="text-xs text-gray-500 mt-1 block pr-4">Hard limits background FPS to 60 via injection. Strips expensive animations to emulate optimal memory performance limits.</span>
+                            <span class="text-xs text-gray-500 mt-1 block pr-4">Hard limits background FPS to 60 via injection and strips expensive animations.</span>
                         </div>
                         <div class="relative">
                             <input type="checkbox" id="lowEndToggle" onchange="updateSettings()" class="sr-only">
@@ -335,6 +303,18 @@
                             <div class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform duration-300 ease-in-out toggle-dot"></div>
                         </div>
                     </label>
+                </div>
+
+                <div class="p-5 bg-white/5 border border-white/5 rounded-2xl">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <span class="block font-bold text-white">Advanced Issue Detection</span>
+                            <span class="text-xs text-gray-500 mt-1 block pr-4">Forces the entire workspace securely into an isolated about:blank container.</span>
+                        </div>
+                        <button onclick="launchAboutBlank()" class="px-4 py-2.5 bg-[#00ffaa]/10 border border-[#00ffaa]/30 text-[#00ffaa] font-bold rounded-xl hover:bg-[#00ffaa]/20 transition-all text-xs shrink-0 shadow-[0_0_10px_rgba(0,255,170,0.1)]">
+                            Launch Blank
+                        </button>
+                    </div>
                 </div>
                 
                 <div class="pt-4">
@@ -351,7 +331,6 @@
         input:checked ~ .toggle-dot { transform: translateX(20px); }
     </style>
 
-    <!-- Game Overlay -->
     <div id="overlay">
         <div class="absolute top-6 left-6 z-[10002] flex items-center gap-4 bg-black/60 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10" id="gameInfoOverlay">
             <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center" id="overlayIcon"></div>
@@ -382,7 +361,6 @@
     </div>
 
     <script>
-        // Database Initialization
         const DB = {
             "Main": ["1.12.html", "1.5.html", "1.8.html", "10minutestilldawn.html", "12minibattles.html", "1on1soccer.html", "1on1tennis.html", "1v1.lol.html", "2048.html", "2048cupcakes.html", "3Dflightsimulator.html", "8ballclassic.html", "Alpha_1.2.6.html", "Beta_1.3.html", "Indev.html", "agariolite.html", "ageofwar.html", "ageofwar2.html", "agesofconflict.html", "amongus.html", "angrybirds.html", "angrybirdsshowdown.html", "angrybirdsspace.html", "awesometanks.html", "awesometanks2.html", "backrooms.html", "baconmaydie.html", "badicecream.html", "badicecream2.html", "badicecream3.html", "badparenting.html", "badpiggies.html", "baldisbasics.html", "baseballbros.html", "basketballlegends.html", "basketballstars.html", "basketbros.html", "basketrandom.html", "bitlife.html", "bitplanes.htm", "blockysnakes.html", "bloonsTD.html", "bloonsTD2.html", "bloonsTD3.html", "bloonsTD4.html", "bloonsTD5.html", "bloxorz.html", "blumgiracers.html", "blumgirocket.html", "bobtherobber.html", "bobtherobber2.html", "bobtherobber5.html", "bouncymotors.html", "bowmasters.html", "boxingrandom.htm", "breakingthebank.html", "bubbleshooter.html", "candycrush.html", "capybaraclicker.html", "cardrawing.html", "carkingarena.html", "chess.html", "choppyorc.html", "circloO.html", "circloO2.html", "clashofvikings.html", "cleanupio.html", "clusterrush.html", "cookieclicker.htm", "crazycars.html", "crazycattle3D.html", "crazycrashlanding.html", "crazymotorcycle.html", "crossyroad.htm", "cuttherope.html", "dadish.html", "dadish2.html", "dadish3.html", "deathchase.html", "deathrun3D.html", "demolitionderbycrashracing.html", "doodlejump.html", "drawclimber.html", "dreadheadparkour.htm", "driftboss.htm", "drivemad.htm", "ducklife.html", "ducklife2.html", "ducklife3.html", "ducklife4.html", "ducklife5.html", "ducklingsio.html", "eagleride.html", "earntodie.html", "earntodie2.html", "eggycar.html", "elasticface.htm", "escaperoad.html", "escaperoad2.html", "escapingtheprison.html", "evilglitch.html", "fancypantsadventure.html", "fancypantsadventure2.html", "fireboyandwatergirl.html", "fireboyandwatergirl2.html", "fireboyandwatergirl3.html", "fireboyandwatergirl4.html", "flappybird.html", "floodrunner2.html", "floodrunner3.html", "floodrunner4.html", "fnaf.html", "fnaf2.html", "fnaf3.html", "fnaf4.html", "footballbros.html", "footballlegends.html", "freerider3.html", "fruitninja.html", "funnybattle.html", "funnybattle2.html", "funnymadracing.html", "funnyshooter2.html", "geometrydash.html", "geometrydashlite.html", "geometryvibes.html", "getawayshootout.htm", "getontop.html", "gladihoppers.html", "googlebaseball.html", "googledino.html", "granny.html", "granny2.html", "guesstheiranswer.html", "hanger2.html", "happywheels.html", "helixjump.html", "highwaytraffic.html", "hillclimbracinglite.html", "holeio.html", "houseofhazards.html", "hoverracerdrive.html", "idlebreakout.html", "ironsnout.html", "jetpackjoyride.html", "johnnytrigger.html", "jumpingshell.html", "karatebros.html", "kartbros.html", "learntofly.html", "learntofly2.html", "learntofly3.html", "learntoflyidle.html", "leveldevil.html", "madalinstuntcars2.html", "melonplayground.html", "mergeroundracers.html", "minesweeper.html", "monkeymart.htm", "monstertracks.html", "motox3m.htm", "motox3m2.html", "motox3m3.html", "motox3mpoolparty.html", "motox3mspookyland.html", "motox3mwinter.html", "noobminer.html", "oppositeday.html", "ovo.html", "ovo2.html", "ovo3dimensions.html", "pacman.html", "papasbakeria.html", "papasburgeria.html", "papascheeseria.html", "papascupcakeria.html", "papasdonuteria.html", "papasfreezeria.html", "papashotdoggeria.html", "papaspancakeria.html", "papaspastaria.html", "papaspizzeria.html", "papasscooperia.html", "papassushiria.html", "papstacomia.html", "papaswingeria.html", "paperio2.htm", "parkingfury.html", "parkingfury2.html", "parkingfury3.html", "picosschool.html", "pingpongchaos.html", "pixelspeedrun.html", "plantsvszombies.html", "plonky.html", "polytrack.html", "poorbunny.html", "pou.html", "ragdollarchers.htm", "ragdollhit.html", "ragdollsoccer.html", "redball4vol1.html", "redball4vol2.html", "redball4vol3.html", "retrobowl.html", "retrobowlcollege.html", "retrohighway.html", "retropingpong.html", "riddleschool.html", "riddleschool2.html", "riddleschool3.html", "riddleschool4.html", "riddleschool5.html", "riddletransfer.html", "riddletransfer2.html", "rocketsoccerderby.html", "rooftopsnipers.htm", "rooftopsnipers2.html", "run.html", "run2.html", "run3.html", "sandgame.html", "shortlife.html", "slope.html", "slope2player.html", "slope3.html", "slowroads.html", "sm63.html", "sm64.html", "snowballio.html", "snowrider.htm", "snowroad.htm", "soccerbros.html", "soccerrandom.htm", "spacebarclicker.html", "spaceiskey.html", "spaceiskey2.html", "spacewaves.html", "speedstars.html", "sprunki.html", "stack.html", "stacktris.html", "stateio.html", "stickarchersbattle.html", "stickfighter.html", "stickmanhook.html", "stickmerge.html", "subwaysurfersbeijing.html", "subwaysurfershavana.html", "subwaysurferssanfrancisco.html", "superbikethechampion.html", "superhot.html", "superliquidsoccer.html", "superstarcar.html", "tabletennisworldtour.html", "tag.html", "taproad.html", "templeofboom.html", "templerun2.htm", "territorialio.html", "theimpossiblequiz.html", "theimpossiblequiz2.html", "thereisnog.html", "theyarecoming.html", "thisistheonlylevel.html", "thisistheonlyleveltoo.html", "timeshooter2.html", "timeshooter3.htm", "tinyfishing.html", "tombofthemask.htm", "trapthecat.html", "triviacrack.html", "tubejumpers.html", "tunnelrush.html", "unicyclehero.html", "vex4.html", "vex5.html", "vex6.htm", "vex7.htm", "vex8.htm", "vexx3m.html", "vexx3m2.html", "volleyrandom.html", "wartheknights.html", "webecomewhatwebehold.html", "wheeliebike.html", "wheely.html", "wheely2.html", "wheely3.html", "wheely4.html", "wheely5.html", "wheely6.html", "wheely7.html", "wheely8.html", "wordleunlimited.html", "worldshardestgame.html", "worldshardestgame2.html", "worldshardestgame3.html", "wrestlebros.html", "zombierush.html"],
             "Minibox": [], 
@@ -397,7 +375,6 @@
         let fetchedRepos = new Set();
         let isFetching = false;
 
-        // Dynamic Github File Fetching Logic
         const githubMap = {
             "Minibox": "Minibox%20Scratch%20Emulator",
             "PlayLabs": "PlayLabs",
@@ -434,16 +411,14 @@
             if (currentTab === prov) render(); 
         }
 
-        // Silent background fetch sequence
         async function backgroundFetchAll() {
             for (const key of Object.keys(githubMap)) {
                 await fetchRepoData(key);
-                await new Promise(r => setTimeout(r, 600)); // Be polite to Github's public API limits
+                await new Promise(r => setTimeout(r, 600));
             }
             if (currentTab === 'All') render();
         }
 
-        // --- Visual System & Icons ---
         function stringToColor(str) {
             let hash = 0;
             for (let i = 0; i < str.length; i++) {
@@ -458,43 +433,39 @@
             if (/^\d|\d\.\d|Beta|Alpha|Indev/.test(name)) {
                 return name.replace(/[_-]/g, ' ');
             }
-            // Auto spacing for CamelCase games (e.g. CandyCrush -> Candy Crush)
             name = name.replace(/([A-Z])/g, ' $1').trim();
             return name.replace(/[_-]/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
         }
 
-        // Smart dynamic icon mapper
         function getMeta(file) {
             const n = file.toLowerCase();
-            let meta = { icon: 'fa-gamepad', gradient: ['#334155', '#0f172a'] }; // Default gray slate
+            let meta = { icon: 'fa-gamepad', gradient: ['#334155', '#0f172a'] };
             
             if (n.match(/soccer|ball|basket|foot|tennis|wrestle|volley|pingpong/)) { 
-                meta.icon = 'fa-basketball'; meta.gradient = ['#f97316', '#9a3412']; // Orange Sport
+                meta.icon = 'fa-basketball'; meta.gradient = ['#f97316', '#9a3412'];
             } else if (n.match(/car|drift|moto|bike|drive|slope|road|race|kart/)) { 
-                meta.icon = 'fa-car-side'; meta.gradient = ['#3b82f6', '#1d4ed8']; // Blue Racing
+                meta.icon = 'fa-car-side'; meta.gradient = ['#3b82f6', '#1d4ed8'];
             } else if (n.match(/fnaf|granny|horror|backrooms|scary/)) { 
-                meta.icon = 'fa-ghost'; meta.gradient = ['#ef4444', '#7f1d1d']; // Red Horror
+                meta.icon = 'fa-ghost'; meta.gradient = ['#ef4444', '#7f1d1d'];
             } else if (n.match(/shooter|sniper|battle|1v1|gun|war|tank|arch/)) { 
-                meta.icon = 'fa-crosshairs'; meta.gradient = ['#eab308', '#854d0e']; // Yellow Action
+                meta.icon = 'fa-crosshairs'; meta.gradient = ['#eab308', '#854d0e'];
             } else if (n.match(/1\.|beta|alpha|indev|minecraft|craft|block/)) { 
-                meta.icon = 'fa-cube'; meta.gradient = ['#22c55e', '#14532d']; // Green Voxel
+                meta.icon = 'fa-cube'; meta.gradient = ['#22c55e', '#14532d'];
             } else if (n.match(/run|dash|parkour|jump|climb/)) {
-                meta.icon = 'fa-person-running'; meta.gradient = ['#a855f7', '#581c87']; // Purple Runner
+                meta.icon = 'fa-person-running'; meta.gradient = ['#a855f7', '#581c87'];
             } else if (n.match(/papas|cook|food|pizza|burger/)) {
-                meta.icon = 'fa-burger'; meta.gradient = ['#f43f5e', '#881337']; // Pink Food
+                meta.icon = 'fa-burger'; meta.gradient = ['#f43f5e', '#881337'];
             } else if (n.match(/math|puzzle|quiz|riddle|wordle/)) {
-                meta.icon = 'fa-brain'; meta.gradient = ['#0ea5e9', '#0369a1']; // Cyan Logic
+                meta.icon = 'fa-brain'; meta.gradient = ['#0ea5e9', '#0369a1'];
             } else if (n.match(/stick|ninja/)) {
-                meta.icon = 'fa-user-ninja'; meta.gradient = ['#64748b', '#1e293b']; // Dark Stealth
+                meta.icon = 'fa-user-ninja'; meta.gradient = ['#64748b', '#1e293b'];
             } else {
-                // Generate a unique fallback gradient color by string hash so every game looks unique
                 const color = stringToColor(n);
                 meta.gradient = [color, '#000000']; 
             }
             return meta;
         }
 
-        // --- Render UI ---
         function render() {
             if (isFetching) return;
 
@@ -562,10 +533,10 @@
             
             const info = {
                 'All': { t: 'Library', d: 'Explore all available games and applications.' },
-                'History': { t: 'Game History', d: 'Jump back into your last played games.' },
+                'History': { t: 'Game History', d: 'Jump back into your recently played titles.' },
                 'Minibox': { t: 'Minibox Scratch', d: 'Scratch-based games via Minibox Emulator.' },
                 'PlayLabs': { t: 'PlayLabs', d: 'Experimental titles and cool finds.' },
-                'MiniLib': { t: 'TruStore Mini', d: 'Optimized lightweight games.' },
+                'MiniLib': { t: 'TruStore MiniLib', d: 'Optimized lightweight games.' },
                 'Plus': { t: 'gamester+', d: 'Premium and exclusive titles.' },
                 'Applist': { t: 'Applications', d: 'Useful web apps and tools.' }
             };
@@ -579,7 +550,7 @@
             
             document.querySelectorAll('.nav-item').forEach(i => {
                 i.classList.remove('active');
-                if (i.innerText.includes(t) || (t === 'All' && i.innerText.includes('Library')) || (t === 'History' && i.innerText.includes('History'))) {
+                if (i.innerText.includes(t) || (t === 'All' && i.innerText.includes('Library')) || (t === 'History' && i.innerText.includes('Game History'))) {
                     i.classList.add('active');
                 }
             });
@@ -588,7 +559,6 @@
             render();
         }
 
-        // --- Core Engine & File Launching ---
         function launch(file, prov) {
             let path = "";
             const base = "offline+/";
@@ -599,11 +569,9 @@
                 path = `./${base}${githubMap[prov]}/${file}`;
             }
 
-            // Update 24 Slot History
             history = [{file, prov}, ...history.filter(h => h.file !== file)].slice(0, 24);
             localStorage.setItem('gs_hist', JSON.stringify(history));
             
-            // Render Overlay Content
             const meta = getMeta(file);
             document.getElementById('overlayIcon').innerHTML = `<i class="fa ${meta.icon} text-white"></i>`;
             document.getElementById('overlayTitle').innerText = formatName(file);
@@ -624,7 +592,6 @@
             
             setTimeout(() => loadingBar.style.width = '80%', 100);
 
-            // Execute Iframe Load
             frame.src = path;
             
             frame.onload = function() {
@@ -637,7 +604,6 @@
             };
         }
 
-        // Advanced Game Throttling (Limits RAM + FPS bounds securely from Parent DOM)
         function applyLowEndRestrictions(iframe) {
             const s = JSON.parse(localStorage.getItem('gs_settings')) || {le: false};
             if (!s.le) return;
@@ -646,18 +612,16 @@
                 const win = iframe.contentWindow;
                 if (!win) return;
                 
-                // Method 1: Strict Animation Cleanup (CSS Memory Restriction)
                 const style = win.document.createElement('style');
                 style.innerHTML = `* { transition: none !important; animation: none !important; box-shadow: none !important; filter: none !important; }`;
                 win.document.head.appendChild(style);
 
-                // Method 2: RequestAnimationFrame Hijack (60 FPS Cap / Skip)
                 const origRaf = win.requestAnimationFrame;
                 if (origRaf) {
                     let lastTime = 0;
                     win.requestAnimationFrame = function(callback) {
                         return origRaf(function(time) {
-                            if (time - lastTime < 16.6) { // Strict 60FPS lock limit (1000/60)
+                            if (time - lastTime < 16.6) {
                                 win.requestAnimationFrame(callback);
                             } else {
                                 lastTime = time;
@@ -667,7 +631,7 @@
                     };
                 }
             } catch (e) {
-                console.warn("CORS/Engine blocked Low End Mode injection into iframe (Local host error vs Online repo).");
+                console.warn("CORS/Engine blocked Low End Mode injection into iframe.");
             }
         }
 
@@ -689,7 +653,6 @@
             } else if (frame.msRequestFullscreen) { frame.msRequestFullscreen(); }
         }
 
-        // --- Settings Management ---
         function toggleSettings() { 
             const s = document.getElementById('settings');
             const panel = document.getElementById('settingsPanel');
@@ -707,16 +670,13 @@
         }
         
         function updateSettings() {
-            const s = { 
-                le: document.getElementById('lowEndToggle').checked
-            };
+            const s = { le: document.getElementById('lowEndToggle').checked };
             localStorage.setItem('gs_settings', JSON.stringify(s));
             applySettings();
         }
 
         function applySettings() {
             const s = JSON.parse(localStorage.getItem('gs_settings')) || {le: false};
-            
             document.body.classList.toggle('low-end', s.le);
             document.getElementById('lowEndToggle').checked = s.le;
             
@@ -730,6 +690,33 @@
             }
         }
 
+        function launchAboutBlank() {
+            const win = window.open('about:blank', '_blank');
+            if (!win) {
+                alert('Popup blocked! Please allow popups for this site to use Advanced Issue Detection.');
+                return;
+            }
+            const doc = win.document;
+            doc.open();
+            doc.write(`
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>about:blank</title>
+                    <style>
+                        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #050505; overflow: hidden; }
+                        iframe { width: 100%; height: 100%; border: none; }
+                    </style>
+                </head>
+                <body>
+                    <iframe src="${window.location.href}" style="width:100%;height:100%;border:none;"></iframe>
+                </body>
+                </html>
+            `);
+            doc.close();
+        }
+
         function clearHistory() { 
             localStorage.removeItem('gs_hist'); 
             history = []; 
@@ -737,7 +724,6 @@
             toggleSettings();
         }
 
-        // Event Bindings
         document.getElementById('searchInput').addEventListener('input', (e) => {
             document.getElementById('searchInputMobile').value = e.target.value;
             render();
@@ -754,11 +740,8 @@
             render();
         });
 
-        // Application Start
         applySettings();
         render();
-        
-        // Initialize Github Sync after initial load (Prevents locking the thread UI)
         setTimeout(backgroundFetchAll, 1000);
     </script>
 </body>
