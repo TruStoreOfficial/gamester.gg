@@ -9,19 +9,21 @@ gamester.gg allows low-end devices, like kioks that use older cpu models or lowe
 ### What are the required specs?
 Powered by TruSpec (not publicy released yet)
 
-| Electronic Part  | Minimum Spec | Recomended Spec |
+| Electronic Part  | Minimum Spec | Recommended Spec | Best Experience |
 | ------------- |:-------------:| ------------- |
-| CPU      | Intel Pentium Silver (2020)     | Intel i3 10th Gen
-| GPU      | Built-in iGPU in CPU     | Vulkan 1.3.289
-| MEM     | 4GB DDR3 Ram     | 8GB DDR3 Ram
-| STORAGE      | 32GB EMMC or USB    | 64GB SSD
-| OS      | ChromeOS 1.10 (or Comp.)    | ChromeOS 1.44 (or Comp.)
+| CPU      | Intel Pentium Silver (2020)     | Intel i3 10th Gen | Intel i5 12th Gen |
+| GPU      | Built-in iGPU in CPU     | Vulkan 1.3.289 | Intel UHD 730 Graphics |
+| MEM     | 4GB DDR3 Ram     | 8GB DDR3 Ram | 8GB DDR4 Ram |
+| STORAGE      | 32GB EMMC or USB    | 64GB SSD (Gen 1) | 64GB SSD or NVME (Gen 2) |
+| OS      | ChromeOS 110 (or Comp.)    | ChromeOS 144 (or Comp.) | ChromeOS 152 (or better) |
 
 ### Updates
 Yes, this is still getting updates!
 
+This product gets updates on a "whenever available" basis. 
+
 | Object  | Last Update |
 | ------------- |:-------------:|
 | Code (non index.html)      | 3/5/2026    |
-| Site (index.html)     | 3/5/2026     |
+| Site (index.html)     | 9/12/2026     |
 | Games      | 3/5/2026     |
