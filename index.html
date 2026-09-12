@@ -3,117 +3,389 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>gamester.gg | Mighty Edition</title>
+    <title>gamester.gg | version 1.2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@400;900&family=Outfit:wght@300;600;900&display=swap');
+        /* Modern fonts */
+        @import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Outfit:wght@300;400;600;800;900&display=swap');
         
-        :root { --bg: #02040a; --accent: #00ffaa; --card: #0b0f1a; --sidebar: #06080e; }
-        body { background: var(--bg); color: #fff; font-family: 'Outfit', sans-serif; margin: 0; overflow: hidden; }
+        :root {
+            --bg-color: #050505;
+            --surface-color: #0a0a0a;
+            --card-bg: #111111;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --accent: #00ffaa;
+            --accent-glow: rgba(0, 255, 170, 0.4);
+            --sidebar-bg: #080808;
+            --text-main: #ffffff;
+            --text-muted: #888888;
+        }
+
+        body {
+            background: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
         .logo-font { font-family: 'Unbounded', sans-serif; }
 
         /* UI Enhancements */
-        .glass { background: rgba(6, 8, 14, 0.8); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .mighty-card { 
-            background: var(--card); border: 1px solid rgba(255,255,255,0.03); 
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+        .glass-header {
+            background: rgba(8, 8, 8, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border-color);
         }
-        .mighty-card:hover { border-color: var(--accent); transform: translateY(-8px) scale(1.02); box-shadow: 0 10px 30px rgba(0, 255, 170, 0.1); }
+
+        .sidebar {
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+        }
+
+        /* Card Styles */
+        .mighty-card { 
+            background: var(--card-bg); 
+            border: 1px solid var(--border-color); 
+            transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
         
-        /* Performance Engine */
-        body.low-end * { transition: none !important; backdrop-filter: none !important; box-shadow: none !important; }
-        body.max-fps .fps-tag { display: block; }
-        .fps-tag { display: none; position: absolute; top: 10px; right: 10px; color: var(--accent); font-size: 9px; font-weight: 900; }
+        .mighty-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle at 50% 0%, rgba(0,255,170,0.1), transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
 
-        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 14px; color: #64748b; font-weight: 600; cursor: pointer; transition: 0.2s; }
-        .nav-item:hover, .nav-item.active { background: rgba(0, 255, 170, 0.1); color: var(--accent); }
+        .mighty-card:hover { 
+            border-color: rgba(0, 255, 170, 0.5); 
+            transform: translateY(-6px); 
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 20px var(--accent-glow);
+        }
+        
+        .mighty-card:hover::before {
+            opacity: 1;
+        }
 
-        #overlay { display: none; position: fixed; inset: 0; background: #000; z-index: 9999; }
-        iframe { width: 100%; height: 100%; border: none; }
+        .card-icon-wrapper {
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .mighty-card:hover .card-icon-wrapper {
+            transform: scale(1.15) rotate(5deg);
+        }
 
-        .rating-dot { width: 6px; height: 6px; border-radius: 50%; }
-        .r-3 { background: #22c55e; } .r-12 { background: #eab308; } .r-15 { background: #ef4444; }
+        /* Performance Engine (Low End Mode) */
+        body.low-end * { 
+            transition: none !important; 
+            backdrop-filter: none !important; 
+            box-shadow: none !important; 
+            animation: none !important;
+        }
+        body.low-end .glass-header {
+            background: #080808;
+        }
 
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        .nav-item { 
+            display: flex; 
+            align-items: center; 
+            gap: 14px; 
+            padding: 12px 18px; 
+            border-radius: 12px; 
+            color: var(--text-muted); 
+            font-weight: 600; 
+            cursor: pointer; 
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        .nav-item:hover { 
+            background: rgba(255, 255, 255, 0.03); 
+            color: #fff; 
+        }
+        .nav-item.active { 
+            background: rgba(0, 255, 170, 0.1); 
+            color: var(--accent); 
+            border: 1px solid rgba(0, 255, 170, 0.2);
+        }
+        .nav-item.active::before {
+            content: '';
+            position: absolute;
+            left: -6px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 20px;
+            background: var(--accent);
+            border-radius: 4px;
+            box-shadow: 0 0 10px var(--accent);
+        }
+
+        /* Overlay */
+        #overlay { 
+            display: none; 
+            position: fixed; 
+            inset: 0; 
+            background: #000; 
+            z-index: 9999; 
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        #overlay.active {
+            opacity: 1;
+        }
+        
+        .loading-screen {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #050505;
+            color: #fff;
+            z-index: 1;
+            transition: opacity 0.5s ease;
+        }
+
+        iframe { 
+            width: 100%; 
+            height: 100%; 
+            border: none; 
+            position: relative;
+            z-index: 2;
+            background: #000;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-color); }
+        ::-webkit-scrollbar-thumb { background: #222; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #333; }
+
+        /* Loader */
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(0, 255, 170, 0.1);
+            border-left-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* Glow utilities */
+        .text-glow { text-shadow: 0 0 15px rgba(0, 255, 170, 0.5); }
+        
+        /* Search Bar */
+        .search-container input:focus {
+            box-shadow: 0 0 0 2px rgba(0,255,170,0.2), 0 0 15px rgba(0,255,170,0.1);
+        }
     </style>
 </head>
 <body class="flex flex-col h-screen">
 
-    <header class="h-20 glass px-8 flex items-center justify-between shrink-0 z-50">
+    <header class="h-20 glass-header px-6 md:px-8 flex items-center justify-between shrink-0 z-50">
         <div class="flex items-center gap-4">
-            <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg"><i class="fa fa-terminal text-black text-xl"></i></div>
-            <h1 class="logo-font text-xl font-black uppercase tracking-tighter">gamester<span class="text-[#00ffaa]">.gg</span></h1>
+            <div class="w-10 h-10 bg-gradient-to-br from-[#00ffaa] to-[#00b377] rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(0,255,170,0.4)]">
+                <i class="fa fa-gamepad text-black text-xl"></i>
+            </div>
+            <h1 class="logo-font text-2xl font-black uppercase tracking-tighter">
+                gamester<span class="text-[#00ffaa] text-glow">.gg</span>
+            </h1>
         </div>
-        <div class="flex-1 max-w-2xl mx-12 relative">
-            <i class="fa fa-search absolute left-5 top-1/2 -translate-y-1/2 text-slate-500"></i>
-            <input type="text" id="searchInput" placeholder="Search 400+ Eaglercraft & Games..." 
-                class="w-full bg-[#0d111c] border border-white/5 rounded-2xl py-3 pl-14 pr-6 focus:border-[#00ffaa]/40 outline-none transition-all">
+        
+        <!-- Desktop Search -->
+        <div class="flex-1 max-w-2xl mx-8 relative hidden md:block search-container">
+            <i class="fa fa-search absolute left-5 top-1/2 -translate-y-1/2 text-gray-500"></i>
+            <input type="text" id="searchInput" placeholder="Search 400+ Games & Apps..." 
+                class="w-full bg-[#111111] text-white border border-white/10 rounded-xl py-3 pl-12 pr-6 focus:border-[#00ffaa]/50 outline-none transition-all placeholder-gray-600 font-medium">
+            <button id="clearSearch" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white hidden transition-colors">
+                <i class="fa fa-times"></i>
+            </button>
         </div>
-        <div class="flex items-center gap-4">
-            <button onclick="toggleSettings()" class="w-10 h-10 rounded-full hover:bg-white/5"><i class="fa fa-cog"></i></button>
-            <div class="hidden md:block text-right">
-                <span id="loadCount" class="text-[#00ffaa] font-black block leading-none">0</span>
-                <span class="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Assets Live</span>
+
+        <div class="flex items-center gap-5">
+            <div id="lowEndBadge" class="hidden items-center gap-2 px-3 py-1.5 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-xs font-bold uppercase tracking-wide">
+                <i class="fa fa-microchip"></i> Low End Mode
+            </div>
+            <button onclick="toggleSettings()" class="w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all flex items-center justify-center group">
+                <i class="fa fa-cog text-gray-400 group-hover:text-white group-hover:rotate-90 transition-all duration-300"></i>
+            </button>
+            <div class="hidden lg:block text-right border-l border-white/10 pl-5">
+                <span id="loadCount" class="text-[#00ffaa] font-black text-lg block leading-none text-glow">0</span>
+                <span class="text-[9px] text-gray-500 font-bold uppercase tracking-widest mt-1 block">Titles Loaded</span>
             </div>
         </div>
     </header>
 
-    <div class="flex flex-1 overflow-hidden">
-        <aside class="w-72 bg-[#06080e] border-r border-white/5 p-6 overflow-y-auto hidden lg:block">
-            <p class="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-4">Core Library</p>
-            <div class="space-y-1 mb-8">
-                <div onclick="setTab('All')" class="nav-item active" id="tab-all"><i class="fa fa-layer-group"></i> Full Vault</div>
-                <div onclick="setTab('History')" class="nav-item" id="tab-hist"><i class="fa fa-clock-rotate-left"></i> History</div>
+    <!-- Mobile Search -->
+    <div class="p-4 glass-header border-t border-white/5 md:hidden">
+        <div class="relative search-container">
+            <i class="fa fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"></i>
+            <input type="text" id="searchInputMobile" placeholder="Search games..." 
+                class="w-full bg-[#111111] text-white border border-white/10 rounded-xl py-2.5 pl-11 pr-4 focus:border-[#00ffaa]/50 outline-none transition-all placeholder-gray-600">
+        </div>
+    </div>
+
+    <div class="flex flex-1 overflow-hidden relative">
+        <aside class="w-64 lg:w-72 sidebar p-6 overflow-y-auto hidden md:block shrink-0">
+            <div class="mb-8">
+                <p class="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-3 pl-2">Core Library</p>
+                <div class="space-y-1.5">
+                    <div onclick="setTab('All')" class="nav-item active" id="tab-all">
+                        <i class="fa fa-layer-group w-5 text-center"></i> Library
+                    </div>
+                    <div onclick="setTab('History')" class="nav-item" id="tab-hist">
+                        <i class="fa fa-clock-rotate-left w-5 text-center"></i> Game History
+                    </div>
+                </div>
             </div>
-            <p class="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-4">Official Providers</p>
-            <div class="space-y-1 mb-8">
-                <div onclick="setTab('Minibox')" class="nav-item"><i class="fa fa-box-open"></i> Minibox Scratch</div>
-                <div onclick="setTab('PlayLabs')" class="nav-item"><i class="fa fa-flask-vial"></i> PlayLabs</div>
-                <div onclick="setTab('MiniLib')" class="nav-item"><i class="fa fa-book-atlas"></i> TruStore Mini</div>
-                <div onclick="setTab('Plus')" class="nav-item font-bold"><i class="fa fa-star text-pink-500"></i> gamester+</div>
+            
+            <div class="mb-8">
+                <p class="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-3 pl-2">Library Extensions</p>
+                <div class="space-y-1.5">
+                    <div onclick="setTab('Minibox')" class="nav-item group flex justify-between items-center">
+                        <div class="flex items-center gap-3"><i class="fa fa-box-open w-5 text-center text-orange-400 group-hover:text-orange-300 transition-colors"></i> Minibox Scratch</div>
+                        <i class="fa fa-cloud-arrow-down text-[10px] opacity-0 group-hover:opacity-100 text-gray-500 transition-opacity"></i>
+                    </div>
+                    <div onclick="setTab('PlayLabs')" class="nav-item group flex justify-between items-center">
+                        <div class="flex items-center gap-3"><i class="fa fa-flask-vial w-5 text-center text-blue-400 group-hover:text-blue-300 transition-colors"></i> PlayLabs</div>
+                        <i class="fa fa-cloud-arrow-down text-[10px] opacity-0 group-hover:opacity-100 text-gray-500 transition-opacity"></i>
+                    </div>
+                    <div onclick="setTab('MiniLib')" class="nav-item group flex justify-between items-center">
+                        <div class="flex items-center gap-3"><i class="fa fa-book-atlas w-5 text-center text-emerald-400 group-hover:text-emerald-300 transition-colors"></i> TruStore Mini</div>
+                        <i class="fa fa-cloud-arrow-down text-[10px] opacity-0 group-hover:opacity-100 text-gray-500 transition-opacity"></i>
+                    </div>
+                    <div onclick="setTab('Plus')" class="nav-item group flex justify-between items-center">
+                        <div class="flex items-center gap-3 font-bold"><i class="fa fa-star w-5 text-center text-pink-500 group-hover:text-pink-400 transition-colors"></i> gamester+</div>
+                        <i class="fa fa-cloud-arrow-down text-[10px] opacity-0 group-hover:opacity-100 text-gray-500 transition-opacity"></i>
+                    </div>
+                </div>
             </div>
-            <p class="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-4">Applications</p>
-            <div onclick="setTab('Applist')" class="nav-item"><i class="fa fa-rocket"></i> Applist</div>
+            
+            <div>
+                <p class="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-3 pl-2">Applications</p>
+                <div class="space-y-1.5">
+                    <div onclick="setTab('Applist')" class="nav-item group flex justify-between items-center">
+                        <div class="flex items-center gap-3"><i class="fa fa-rocket w-5 text-center text-purple-400 group-hover:text-purple-300 transition-colors"></i> Applist</div>
+                        <i class="fa fa-cloud-arrow-down text-[10px] opacity-0 group-hover:opacity-100 text-gray-500 transition-opacity"></i>
+                    </div>
+                </div>
+            </div>
         </aside>
 
-        <main class="flex-1 overflow-y-auto p-8 bg-[#02040a]">
-            <div id="grid" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-8 gap-6"></div>
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-y-auto p-4 md:p-8 bg-black">
+            <!-- Dynamic State Headers -->
+            <div id="categoryHeader" class="mb-8 hidden">
+                <h2 id="categoryTitle" class="text-3xl font-black logo-font capitalize text-white mb-2">Library</h2>
+                <p id="categoryDesc" class="text-gray-400 text-sm">Explore all available games and applications.</p>
+            </div>
+
+            <!-- Loader for fetching -->
+            <div id="fetchLoader" class="hidden flex-col items-center justify-center py-20">
+                <div class="spinner mb-4"></div>
+                <p class="text-gray-400 font-bold tracking-widest uppercase text-xs">Syncing Github Vault...</p>
+            </div>
+
+            <!-- Grid -->
+            <div id="grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4 md:gap-6 pb-20">
+                <!-- Cards injected here -->
+            </div>
+            
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden flex-col items-center justify-center py-20 text-center">
+                <div class="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-4">
+                    <i class="fa fa-ghost text-3xl text-gray-600"></i>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-2">No titles found</h3>
+                <p class="text-gray-500">Try searching for something else or check another category.</p>
+            </div>
         </main>
     </div>
 
-    <div id="settings" class="hidden fixed inset-0 z-[10001] flex items-center justify-center p-6 bg-black/95 backdrop-blur-xl">
-        <div class="bg-[#0b0f1a] border border-white/10 w-full max-w-sm rounded-[32px] p-8 shadow-2xl">
-            <h2 class="text-xl font-black mb-6 flex items-center gap-3"><i class="fa fa-sliders text-[#00ffaa]"></i> MIGHTY ENGINE</h2>
+    <!-- Settings Modal -->
+    <div id="settings" class="hidden fixed inset-0 z-[10001] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md opacity-0 transition-opacity duration-300">
+        <div class="bg-[#111111] border border-white/10 w-full max-w-md rounded-3xl p-8 shadow-2xl transform scale-95 transition-transform duration-300" id="settingsPanel">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-2xl font-black flex items-center gap-3 logo-font tracking-tight">
+                    <i class="fa fa-sliders text-[#00ffaa]"></i> ENGINE
+                </h2>
+                <button onclick="toggleSettings()" class="text-gray-500 hover:text-white transition-colors">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
+            </div>
+            
             <div class="space-y-4">
-                <label class="flex items-center justify-between p-4 bg-white/5 rounded-2xl cursor-pointer hover:bg-white/10 transition-all">
-                    <span>Low End Mode</span>
-                    <input type="checkbox" id="lowEndToggle" onchange="updateSettings()" class="w-5 h-5 accent-[#00ffaa]">
-                </label>
-                <label class="flex items-center justify-between p-4 bg-white/5 rounded-2xl cursor-pointer hover:bg-white/10 transition-all">
-                    <span>Show Max FPS</span>
-                    <input type="checkbox" id="fpsToggle" onchange="updateSettings()" class="w-5 h-5 accent-[#00ffaa]">
-                </label>
-                <button onclick="clearHistory()" class="w-full p-4 text-red-400 font-bold hover:bg-red-500/10 rounded-2xl mt-4">Wipe History</button>
-                <button onclick="toggleSettings()" class="w-full bg-[#00ffaa] text-black font-black py-4 rounded-2xl mt-2 uppercase tracking-widest">Apply & Close</button>
+                <div class="p-5 bg-white/5 border border-white/5 rounded-2xl">
+                    <label class="flex items-center justify-between cursor-pointer group">
+                        <div>
+                            <span class="block font-bold text-white group-hover:text-[#00ffaa] transition-colors">Low End Device Mode</span>
+                            <span class="text-xs text-gray-500 mt-1 block pr-4">Hard limits background FPS to 60 via injection. Strips expensive animations to emulate optimal memory performance limits.</span>
+                        </div>
+                        <div class="relative">
+                            <input type="checkbox" id="lowEndToggle" onchange="updateSettings()" class="sr-only">
+                            <div class="w-11 h-6 bg-gray-700 rounded-full shadow-inner transition-colors duration-300 ease-in-out toggle-bg"></div>
+                            <div class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform duration-300 ease-in-out toggle-dot"></div>
+                        </div>
+                    </label>
+                </div>
+                
+                <div class="pt-4">
+                    <button onclick="clearHistory()" class="w-full p-4 text-red-400 font-bold bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 hover:text-red-300 rounded-xl transition-all flex items-center justify-center gap-2">
+                        <i class="fa fa-trash-can"></i> Wipe Local History
+                    </button>
+                </div>
             </div>
         </div>
     </div>
+    
+    <style>
+        input:checked ~ .toggle-bg { background-color: #00ffaa; }
+        input:checked ~ .toggle-dot { transform: translateX(20px); }
+    </style>
 
+    <!-- Game Overlay -->
     <div id="overlay">
-        <div class="absolute top-6 right-6 z-[10002]">
-            <button onclick="closeApp()" class="w-14 h-14 bg-red-600 rounded-2xl flex items-center justify-center hover:bg-red-500 hover:scale-110 transition-all shadow-2xl">
-                <i class="fa fa-times text-xl"></i>
+        <div class="absolute top-6 left-6 z-[10002] flex items-center gap-4 bg-black/60 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10" id="gameInfoOverlay">
+            <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center" id="overlayIcon"></div>
+            <div>
+                <h3 class="text-white font-bold text-sm leading-tight" id="overlayTitle">Game Title</h3>
+                <span class="text-[#00ffaa] text-[10px] font-black uppercase tracking-widest" id="overlayProv">Provider</span>
+            </div>
+        </div>
+
+        <div class="absolute top-6 right-6 z-[10002] flex gap-4">
+            <button onclick="toggleFullscreen()" class="w-12 h-12 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl flex items-center justify-center hover:bg-white/20 transition-all shadow-xl text-white group">
+                <i class="fa fa-expand text-lg group-hover:scale-110 transition-transform"></i>
+            </button>
+            <button onclick="closeApp()" class="w-12 h-12 bg-red-500/80 backdrop-blur-md border border-red-500/50 rounded-2xl flex items-center justify-center hover:bg-red-500 transition-all shadow-[0_0_20px_rgba(239,68,68,0.4)] text-white group">
+                <i class="fa fa-times text-xl group-hover:rotate-90 transition-transform"></i>
             </button>
         </div>
+        
+        <div class="loading-screen" id="gameLoader">
+            <div class="spinner mb-6 w-12 h-12 border-4"></div>
+            <h2 class="text-2xl font-black logo-font tracking-tight mb-2">INITIALIZING ENGINE</h2>
+            <div class="w-64 h-2 bg-white/10 rounded-full overflow-hidden">
+                <div class="h-full bg-[#00ffaa] rounded-full w-0 transition-all duration-[2000ms] ease-out" id="loadingBar"></div>
+            </div>
+        </div>
+
         <iframe id="frame" src=""></iframe>
     </div>
 
     <script>
+        // Database Initialization
         const DB = {
             "Main": ["1.12.html", "1.5.html", "1.8.html", "10minutestilldawn.html", "12minibattles.html", "1on1soccer.html", "1on1tennis.html", "1v1.lol.html", "2048.html", "2048cupcakes.html", "3Dflightsimulator.html", "8ballclassic.html", "Alpha_1.2.6.html", "Beta_1.3.html", "Indev.html", "agariolite.html", "ageofwar.html", "ageofwar2.html", "agesofconflict.html", "amongus.html", "angrybirds.html", "angrybirdsshowdown.html", "angrybirdsspace.html", "awesometanks.html", "awesometanks2.html", "backrooms.html", "baconmaydie.html", "badicecream.html", "badicecream2.html", "badicecream3.html", "badparenting.html", "badpiggies.html", "baldisbasics.html", "baseballbros.html", "basketballlegends.html", "basketballstars.html", "basketbros.html", "basketrandom.html", "bitlife.html", "bitplanes.htm", "blockysnakes.html", "bloonsTD.html", "bloonsTD2.html", "bloonsTD3.html", "bloonsTD4.html", "bloonsTD5.html", "bloxorz.html", "blumgiracers.html", "blumgirocket.html", "bobtherobber.html", "bobtherobber2.html", "bobtherobber5.html", "bouncymotors.html", "bowmasters.html", "boxingrandom.htm", "breakingthebank.html", "bubbleshooter.html", "candycrush.html", "capybaraclicker.html", "cardrawing.html", "carkingarena.html", "chess.html", "choppyorc.html", "circloO.html", "circloO2.html", "clashofvikings.html", "cleanupio.html", "clusterrush.html", "cookieclicker.htm", "crazycars.html", "crazycattle3D.html", "crazycrashlanding.html", "crazymotorcycle.html", "crossyroad.htm", "cuttherope.html", "dadish.html", "dadish2.html", "dadish3.html", "deathchase.html", "deathrun3D.html", "demolitionderbycrashracing.html", "doodlejump.html", "drawclimber.html", "dreadheadparkour.htm", "driftboss.htm", "drivemad.htm", "ducklife.html", "ducklife2.html", "ducklife3.html", "ducklife4.html", "ducklife5.html", "ducklingsio.html", "eagleride.html", "earntodie.html", "earntodie2.html", "eggycar.html", "elasticface.htm", "escaperoad.html", "escaperoad2.html", "escapingtheprison.html", "evilglitch.html", "fancypantsadventure.html", "fancypantsadventure2.html", "fireboyandwatergirl.html", "fireboyandwatergirl2.html", "fireboyandwatergirl3.html", "fireboyandwatergirl4.html", "flappybird.html", "floodrunner2.html", "floodrunner3.html", "floodrunner4.html", "fnaf.html", "fnaf2.html", "fnaf3.html", "fnaf4.html", "footballbros.html", "footballlegends.html", "freerider3.html", "fruitninja.html", "funnybattle.html", "funnybattle2.html", "funnymadracing.html", "funnyshooter2.html", "geometrydash.html", "geometrydashlite.html", "geometryvibes.html", "getawayshootout.htm", "getontop.html", "gladihoppers.html", "googlebaseball.html", "googledino.html", "granny.html", "granny2.html", "guesstheiranswer.html", "hanger2.html", "happywheels.html", "helixjump.html", "highwaytraffic.html", "hillclimbracinglite.html", "holeio.html", "houseofhazards.html", "hoverracerdrive.html", "idlebreakout.html", "ironsnout.html", "jetpackjoyride.html", "johnnytrigger.html", "jumpingshell.html", "karatebros.html", "kartbros.html", "learntofly.html", "learntofly2.html", "learntofly3.html", "learntoflyidle.html", "leveldevil.html", "madalinstuntcars2.html", "melonplayground.html", "mergeroundracers.html", "minesweeper.html", "monkeymart.htm", "monstertracks.html", "motox3m.htm", "motox3m2.html", "motox3m3.html", "motox3mpoolparty.html", "motox3mspookyland.html", "motox3mwinter.html", "noobminer.html", "oppositeday.html", "ovo.html", "ovo2.html", "ovo3dimensions.html", "pacman.html", "papasbakeria.html", "papasburgeria.html", "papascheeseria.html", "papascupcakeria.html", "papasdonuteria.html", "papasfreezeria.html", "papashotdoggeria.html", "papaspancakeria.html", "papaspastaria.html", "papaspizzeria.html", "papasscooperia.html", "papassushiria.html", "papstacomia.html", "papaswingeria.html", "paperio2.htm", "parkingfury.html", "parkingfury2.html", "parkingfury3.html", "picosschool.html", "pingpongchaos.html", "pixelspeedrun.html", "plantsvszombies.html", "plonky.html", "polytrack.html", "poorbunny.html", "pou.html", "ragdollarchers.htm", "ragdollhit.html", "ragdollsoccer.html", "redball4vol1.html", "redball4vol2.html", "redball4vol3.html", "retrobowl.html", "retrobowlcollege.html", "retrohighway.html", "retropingpong.html", "riddleschool.html", "riddleschool2.html", "riddleschool3.html", "riddleschool4.html", "riddleschool5.html", "riddletransfer.html", "riddletransfer2.html", "rocketsoccerderby.html", "rooftopsnipers.htm", "rooftopsnipers2.html", "run.html", "run2.html", "run3.html", "sandgame.html", "shortlife.html", "slope.html", "slope2player.html", "slope3.html", "slowroads.html", "sm63.html", "sm64.html", "snowballio.html", "snowrider.htm", "snowroad.htm", "soccerbros.html", "soccerrandom.htm", "spacebarclicker.html", "spaceiskey.html", "spaceiskey2.html", "spacewaves.html", "speedstars.html", "sprunki.html", "stack.html", "stacktris.html", "stateio.html", "stickarchersbattle.html", "stickfighter.html", "stickmanhook.html", "stickmerge.html", "subwaysurfersbeijing.html", "subwaysurfershavana.html", "subwaysurferssanfrancisco.html", "superbikethechampion.html", "superhot.html", "superliquidsoccer.html", "superstarcar.html", "tabletennisworldtour.html", "tag.html", "taproad.html", "templeofboom.html", "templerun2.htm", "territorialio.html", "theimpossiblequiz.html", "theimpossiblequiz2.html", "thereisnog.html", "theyarecoming.html", "thisistheonlylevel.html", "thisistheonlyleveltoo.html", "timeshooter2.html", "timeshooter3.htm", "tinyfishing.html", "tombofthemask.htm", "trapthecat.html", "triviacrack.html", "tubejumpers.html", "tunnelrush.html", "unicyclehero.html", "vex4.html", "vex5.html", "vex6.htm", "vex7.htm", "vex8.htm", "vexx3m.html", "vexx3m2.html", "volleyrandom.html", "wartheknights.html", "webecomewhatwebehold.html", "wheeliebike.html", "wheely.html", "wheely2.html", "wheely3.html", "wheely4.html", "wheely5.html", "wheely6.html", "wheely7.html", "wheely8.html", "wordleunlimited.html", "worldshardestgame.html", "worldshardestgame2.html", "worldshardestgame3.html", "wrestlebros.html", "zombierush.html"],
-            "Minibox": [], // Add filenames here
+            "Minibox": [], 
             "PlayLabs": [], 
             "MiniLib": [], 
             "Plus": [], 
@@ -122,35 +394,116 @@
 
         let currentTab = 'All';
         let history = JSON.parse(localStorage.getItem('gs_hist')) || [];
+        let fetchedRepos = new Set();
+        let isFetching = false;
 
-        // Fix File Name Logic (Handles Eaglercraft Versions)
+        // Dynamic Github File Fetching Logic
+        const githubMap = {
+            "Minibox": "Minibox%20Scratch%20Emulator",
+            "PlayLabs": "PlayLabs",
+            "MiniLib": "TruStore%20MiniLib",
+            "Plus": "gamester%2B",
+            "Applist": "Applist"
+        };
+
+        async function fetchRepoData(prov) {
+            if (prov === 'Main' || prov === 'History' || prov === 'All') return;
+            if (fetchedRepos.has(prov)) return;
+
+            isFetching = true;
+            document.getElementById('grid').innerHTML = '';
+            document.getElementById('fetchLoader').classList.remove('hidden');
+            document.getElementById('emptyState').classList.add('hidden');
+
+            try {
+                const url = `https://api.github.com/repos/TruStoreOfficial/gamester.gg/contents/offline%2B/${githubMap[prov]}`;
+                const res = await fetch(url);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (Array.isArray(data)) {
+                        DB[prov] = data.filter(f => f.name.endsWith('.html') || f.name.endsWith('.htm')).map(f => f.name);
+                    }
+                }
+                fetchedRepos.add(prov);
+            } catch (err) {
+                console.error("Fetch error for " + prov, err);
+            }
+
+            isFetching = false;
+            document.getElementById('fetchLoader').classList.add('hidden');
+            if (currentTab === prov) render(); 
+        }
+
+        // Silent background fetch sequence
+        async function backgroundFetchAll() {
+            for (const key of Object.keys(githubMap)) {
+                await fetchRepoData(key);
+                await new Promise(r => setTimeout(r, 600)); // Be polite to Github's public API limits
+            }
+            if (currentTab === 'All') render();
+        }
+
+        // --- Visual System & Icons ---
+        function stringToColor(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = str.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const h = Math.abs(hash) % 360;
+            return `hsl(${h}, 70%, 55%)`;
+        }
+
         function formatName(file) {
-            // Remove the extension
             let name = file.split('.html')[0].split('.htm')[0];
-            
-            // If it's a version number like "1.12" or "Beta_1.3"
             if (/^\d|\d\.\d|Beta|Alpha|Indev/.test(name)) {
                 return name.replace(/[_-]/g, ' ');
             }
-            
-            // For standard games, capitalize and space it out
-            return name.replace(/[_-]/g, ' ').toUpperCase();
+            // Auto spacing for CamelCase games (e.g. CandyCrush -> Candy Crush)
+            name = name.replace(/([A-Z])/g, ' $1').trim();
+            return name.replace(/[_-]/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
         }
 
+        // Smart dynamic icon mapper
         function getMeta(file) {
             const n = file.toLowerCase();
-            let meta = { icon: 'fa-gamepad', rc: 'r-3' };
-            if (n.match(/soccer|ball|basket|foot|tennis|wrestle/)) meta.icon = 'fa-basketball-ball';
-            if (n.match(/car|drift|moto|bike|drive|slope|road/)) meta.icon = 'fa-car-side';
-            if (n.match(/fnaf|granny|horror|backrooms/)) { meta.icon = 'fa-ghost'; meta.rc = 'r-15'; }
-            if (n.match(/shooter|sniper|battle|1v1|gun/)) { meta.icon = 'fa-crosshairs'; meta.rc = 'r-12'; }
-            if (n.match(/1\.|Beta|Alpha|Indev|minecraft/)) meta.icon = 'fa-cube';
+            let meta = { icon: 'fa-gamepad', gradient: ['#334155', '#0f172a'] }; // Default gray slate
+            
+            if (n.match(/soccer|ball|basket|foot|tennis|wrestle|volley|pingpong/)) { 
+                meta.icon = 'fa-basketball'; meta.gradient = ['#f97316', '#9a3412']; // Orange Sport
+            } else if (n.match(/car|drift|moto|bike|drive|slope|road|race|kart/)) { 
+                meta.icon = 'fa-car-side'; meta.gradient = ['#3b82f6', '#1d4ed8']; // Blue Racing
+            } else if (n.match(/fnaf|granny|horror|backrooms|scary/)) { 
+                meta.icon = 'fa-ghost'; meta.gradient = ['#ef4444', '#7f1d1d']; // Red Horror
+            } else if (n.match(/shooter|sniper|battle|1v1|gun|war|tank|arch/)) { 
+                meta.icon = 'fa-crosshairs'; meta.gradient = ['#eab308', '#854d0e']; // Yellow Action
+            } else if (n.match(/1\.|beta|alpha|indev|minecraft|craft|block/)) { 
+                meta.icon = 'fa-cube'; meta.gradient = ['#22c55e', '#14532d']; // Green Voxel
+            } else if (n.match(/run|dash|parkour|jump|climb/)) {
+                meta.icon = 'fa-person-running'; meta.gradient = ['#a855f7', '#581c87']; // Purple Runner
+            } else if (n.match(/papas|cook|food|pizza|burger/)) {
+                meta.icon = 'fa-burger'; meta.gradient = ['#f43f5e', '#881337']; // Pink Food
+            } else if (n.match(/math|puzzle|quiz|riddle|wordle/)) {
+                meta.icon = 'fa-brain'; meta.gradient = ['#0ea5e9', '#0369a1']; // Cyan Logic
+            } else if (n.match(/stick|ninja/)) {
+                meta.icon = 'fa-user-ninja'; meta.gradient = ['#64748b', '#1e293b']; // Dark Stealth
+            } else {
+                // Generate a unique fallback gradient color by string hash so every game looks unique
+                const color = stringToColor(n);
+                meta.gradient = [color, '#000000']; 
+            }
             return meta;
         }
 
+        // --- Render UI ---
         function render() {
+            if (isFetching) return;
+
             const grid = document.getElementById('grid');
-            const search = document.getElementById('searchInput').value.toLowerCase();
+            const searchInputs = [document.getElementById('searchInput'), document.getElementById('searchInputMobile')];
+            const search = (searchInputs[0].value || searchInputs[1].value).toLowerCase();
+            
+            document.getElementById('clearSearch').style.display = search ? 'block' : 'none';
+
             grid.innerHTML = "";
             let count = 0;
 
@@ -158,19 +511,19 @@
                 if (!file.toLowerCase().includes(search)) return;
                 const meta = getMeta(file);
                 const title = formatName(file);
+                
                 const card = document.createElement('div');
-                card.className = "mighty-card p-6 rounded-[28px] flex flex-col items-center justify-center text-center cursor-pointer group relative";
+                card.className = "mighty-card rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer group";
                 card.onclick = () => launch(file, prov);
+                
                 card.innerHTML = `
-                    <div class="fps-tag">144 FPS</div>
-                    <div class="absolute top-4 left-5 flex items-center gap-2">
-                        <div class="rating-dot ${meta.rc}"></div>
-                        <span class="text-[8px] font-black opacity-40 uppercase tracking-tighter">${prov}</span>
+                    <div class="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 card-icon-wrapper shadow-lg border border-white/10" 
+                         style="background: linear-gradient(135deg, ${meta.gradient[0]}, ${meta.gradient[1]})">
+                        <i class="fa ${meta.icon} text-2xl text-white drop-shadow-md"></i>
                     </div>
-                    <div class="w-14 h-14 bg-black/40 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:bg-[#00ffaa]/10 transition-all">
-                        <i class="fa ${meta.icon} text-slate-600 group-hover:text-[#00ffaa]"></i>
-                    </div>
-                    <h3 class="text-[10px] font-black tracking-widest text-slate-400 group-hover:text-white truncate w-full">${title}</h3>
+                    
+                    <h3 class="text-xs font-bold text-gray-200 group-hover:text-white truncate w-full mb-1 transition-colors">${title}</h3>
+                    <span class="text-[9px] font-black opacity-50 uppercase tracking-widest text-[#00ffaa] group-hover:opacity-100 transition-opacity">${prov === 'Main' ? 'Vault' : prov}</span>
                 `;
                 grid.appendChild(card);
                 count++;
@@ -185,10 +538,57 @@
                     }
                 });
             }
+
             document.getElementById('loadCount').innerText = count;
+            
+            const emptyState = document.getElementById('emptyState');
+            if (count === 0 && !isFetching) {
+                emptyState.classList.remove('hidden');
+                emptyState.classList.add('flex');
+            } else {
+                emptyState.classList.add('hidden');
+                emptyState.classList.remove('flex');
+            }
+
+            updateCategoryHeader();
         }
 
-        // Fixed Directory Connection Logic
+        function updateCategoryHeader() {
+            const header = document.getElementById('categoryHeader');
+            const title = document.getElementById('categoryTitle');
+            const desc = document.getElementById('categoryDesc');
+            
+            header.classList.remove('hidden');
+            
+            const info = {
+                'All': { t: 'Library', d: 'Explore all available games and applications.' },
+                'History': { t: 'Game History', d: 'Jump back into your last played games.' },
+                'Minibox': { t: 'Minibox Scratch', d: 'Scratch-based games via Minibox Emulator.' },
+                'PlayLabs': { t: 'PlayLabs', d: 'Experimental titles and cool finds.' },
+                'MiniLib': { t: 'TruStore Mini', d: 'Optimized lightweight games.' },
+                'Plus': { t: 'gamester+', d: 'Premium and exclusive titles.' },
+                'Applist': { t: 'Applications', d: 'Useful web apps and tools.' }
+            };
+
+            title.innerText = info[currentTab]?.t || currentTab;
+            desc.innerText = info[currentTab]?.d || '';
+        }
+
+        async function setTab(t) {
+            currentTab = t;
+            
+            document.querySelectorAll('.nav-item').forEach(i => {
+                i.classList.remove('active');
+                if (i.innerText.includes(t) || (t === 'All' && i.innerText.includes('Library')) || (t === 'History' && i.innerText.includes('History'))) {
+                    i.classList.add('active');
+                }
+            });
+
+            if (t !== 'All' && t !== 'History' && t !== 'Main') await fetchRepoData(t);
+            render();
+        }
+
+        // --- Core Engine & File Launching ---
         function launch(file, prov) {
             let path = "";
             const base = "offline+/";
@@ -196,61 +596,170 @@
             if (prov === "Main") {
                 path = `./offline/${file}`;
             } else {
-                // Mapping folder names exactly as they are in your repo
-                const map = {
-                    "Minibox": "Minibox%20Scratch%20Emulator",
-                    "PlayLabs": "PlayLabs",
-                    "MiniLib": "TruStore%20Mini%20Lib",
-                    "Plus": "gamester%2B",
-                    "Applist": "Applist"
-                };
-                path = `./${base}${map[prov]}/${file}`;
+                path = `./${base}${githubMap[prov]}/${file}`;
             }
 
-            // Update History
-            history = [{file, prov}, ...history.filter(h => h.file !== file)].slice(0, 20);
+            // Update 24 Slot History
+            history = [{file, prov}, ...history.filter(h => h.file !== file)].slice(0, 24);
             localStorage.setItem('gs_hist', JSON.stringify(history));
             
-            document.getElementById('frame').src = path;
-            document.getElementById('overlay').style.display = "block";
+            // Render Overlay Content
+            const meta = getMeta(file);
+            document.getElementById('overlayIcon').innerHTML = `<i class="fa ${meta.icon} text-white"></i>`;
+            document.getElementById('overlayTitle').innerText = formatName(file);
+            document.getElementById('overlayProv').innerText = prov === 'Main' ? 'Vault' : prov;
+
+            const overlay = document.getElementById('overlay');
+            const frame = document.getElementById('frame');
+            const gameLoader = document.getElementById('gameLoader');
+            const loadingBar = document.getElementById('loadingBar');
+            
+            overlay.style.display = "block";
+            void overlay.offsetWidth;
+            overlay.classList.add('active');
+            
+            gameLoader.style.opacity = '1';
+            gameLoader.style.pointerEvents = 'all';
+            loadingBar.style.width = '0%';
+            
+            setTimeout(() => loadingBar.style.width = '80%', 100);
+
+            // Execute Iframe Load
+            frame.src = path;
+            
+            frame.onload = function() {
+                loadingBar.style.width = '100%';
+                setTimeout(() => {
+                    gameLoader.style.opacity = '0';
+                    gameLoader.style.pointerEvents = 'none';
+                    applyLowEndRestrictions(frame);
+                }, 500);
+            };
+        }
+
+        // Advanced Game Throttling (Limits RAM + FPS bounds securely from Parent DOM)
+        function applyLowEndRestrictions(iframe) {
+            const s = JSON.parse(localStorage.getItem('gs_settings')) || {le: false};
+            if (!s.le) return;
+            
+            try {
+                const win = iframe.contentWindow;
+                if (!win) return;
+                
+                // Method 1: Strict Animation Cleanup (CSS Memory Restriction)
+                const style = win.document.createElement('style');
+                style.innerHTML = `* { transition: none !important; animation: none !important; box-shadow: none !important; filter: none !important; }`;
+                win.document.head.appendChild(style);
+
+                // Method 2: RequestAnimationFrame Hijack (60 FPS Cap / Skip)
+                const origRaf = win.requestAnimationFrame;
+                if (origRaf) {
+                    let lastTime = 0;
+                    win.requestAnimationFrame = function(callback) {
+                        return origRaf(function(time) {
+                            if (time - lastTime < 16.6) { // Strict 60FPS lock limit (1000/60)
+                                win.requestAnimationFrame(callback);
+                            } else {
+                                lastTime = time;
+                                callback(time);
+                            }
+                        });
+                    };
+                }
+            } catch (e) {
+                console.warn("CORS/Engine blocked Low End Mode injection into iframe (Local host error vs Online repo).");
+            }
         }
 
         function closeApp() {
-            document.getElementById('overlay').style.display = "none";
-            document.getElementById('frame').src = "";
-            render();
+            const overlay = document.getElementById('overlay');
+            overlay.classList.remove('active');
+            
+            setTimeout(() => {
+                overlay.style.display = "none";
+                document.getElementById('frame').src = "";
+                render();
+            }, 300);
         }
 
-        function setTab(t) {
-            currentTab = t;
-            document.querySelectorAll('.nav-item').forEach(i => {
-                i.classList.remove('active');
-                if (i.innerText.includes(t) || (t === 'All' && i.innerText.includes('Vault'))) i.classList.add('active');
-            });
-            render();
+        function toggleFullscreen() {
+            const frame = document.getElementById('frame');
+            if (frame.requestFullscreen) { frame.requestFullscreen();
+            } else if (frame.webkitRequestFullscreen) { frame.webkitRequestFullscreen();
+            } else if (frame.msRequestFullscreen) { frame.msRequestFullscreen(); }
         }
 
-        function toggleSettings() { document.getElementById('settings').classList.toggle('hidden'); }
+        // --- Settings Management ---
+        function toggleSettings() { 
+            const s = document.getElementById('settings');
+            const panel = document.getElementById('settingsPanel');
+            
+            if (s.classList.contains('hidden')) {
+                s.classList.remove('hidden');
+                void s.offsetWidth;
+                s.classList.remove('opacity-0');
+                panel.classList.remove('scale-95');
+            } else {
+                s.classList.add('opacity-0');
+                panel.classList.add('scale-95');
+                setTimeout(() => s.classList.add('hidden'), 300);
+            }
+        }
         
         function updateSettings() {
-            const s = { le: document.getElementById('lowEndToggle').checked, fps: document.getElementById('fpsToggle').checked };
+            const s = { 
+                le: document.getElementById('lowEndToggle').checked
+            };
             localStorage.setItem('gs_settings', JSON.stringify(s));
             applySettings();
         }
 
         function applySettings() {
-            const s = JSON.parse(localStorage.getItem('gs_settings')) || {le: false, fps: false};
+            const s = JSON.parse(localStorage.getItem('gs_settings')) || {le: false};
+            
             document.body.classList.toggle('low-end', s.le);
-            document.body.classList.toggle('max-fps', s.fps);
             document.getElementById('lowEndToggle').checked = s.le;
-            document.getElementById('fpsToggle').checked = s.fps;
+            
+            const badge = document.getElementById('lowEndBadge');
+            if (s.le) {
+                badge.classList.remove('hidden');
+                badge.classList.add('flex');
+            } else {
+                badge.classList.add('hidden');
+                badge.classList.remove('flex');
+            }
         }
 
-        function clearHistory() { localStorage.removeItem('gs_hist'); history = []; render(); }
+        function clearHistory() { 
+            localStorage.removeItem('gs_hist'); 
+            history = []; 
+            if (currentTab === 'History') render();
+            toggleSettings();
+        }
 
-        document.getElementById('searchInput').addEventListener('input', render);
+        // Event Bindings
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            document.getElementById('searchInputMobile').value = e.target.value;
+            render();
+        });
+        
+        document.getElementById('searchInputMobile').addEventListener('input', (e) => {
+            document.getElementById('searchInput').value = e.target.value;
+            render();
+        });
+
+        document.getElementById('clearSearch').addEventListener('click', () => {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('searchInputMobile').value = '';
+            render();
+        });
+
+        // Application Start
         applySettings();
         render();
+        
+        // Initialize Github Sync after initial load (Prevents locking the thread UI)
+        setTimeout(backgroundFetchAll, 1000);
     </script>
 </body>
 </html>
